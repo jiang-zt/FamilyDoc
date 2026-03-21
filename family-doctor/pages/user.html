@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户中心</title>
+    <link rel="stylesheet" href="../../css/user/user.css">
+</head>
+<body>
+    <div class="user-container" id="userPage">
+        <header class="user-header">
+            <div>
+                <h1>用户中心</h1>
+                <p>查看你的账号信息</p>
+            </div>
+            <div class="user-actions">
+                <button class="btn" @click="goChat()">返回聊天</button>
+                <button class="btn ghost" @click="logout()">退出登录</button>
+            </div>
+        </header>
+
+        <section class="user-card">
+            <h2>我的信息</h2>
+            <div class="info-row">
+                <span>用户ID</span>
+                <strong>{{profile.id}}</strong>
+            </div>
+            <div class="info-row">
+                <span>用户名</span>
+                <strong>{{profile.username}}</strong>
+            </div>
+            <div class="error" v-if="errorMsg">{{errorMsg}}</div>
+        </section>
+    </div>
+</body>
+
+<script src="../../libs/vue.min.js"></script>
+<script src="../../libs/axios.min.js"></script>
+<script src="../../libs/jquery-3.4.1.min.js"></script>
+<script src="../../libs/js.cookie.min.js"></script>
+<script src="../../js/cookieUtils.js"></script>
+<script src="../../js/request.js"></script>
+<script src="../../js/apis/admin/authApi.js"></script>
+
+<script>
+    var userPage = new Vue({
+        el: "#userPage",
+        data() {
+            return {
+                profile: {
+                    id: '-',
+                    username: '-'
+                },
+                errorMsg: null
+            }
+        },
+        mounted() {
+            this.loadProfile();
+        },
+        methods: {
+            loadProfile() {
+                this.errorMsg = null;
+                authApi.me().then((result) => {
+                    this.profile = result;
+                }).catch((err) => {
+                    this.errorMsg = '未登录或会话已过期';
+                });
+            },
+            goChat() {
+                window.location.href = '/pages/chat-doctor.html';
+            },
+            logout() {
+                cookieUtils.removeUserInfo();
+                cookieUtils.removeToken();
+                window.location.href = '/pages/chat-doctor.html';
+            }
+        }
+    });
+</script>
+</html>

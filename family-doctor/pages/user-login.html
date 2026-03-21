@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录</title>
+    <link rel="stylesheet" href="../../css/entry/login.css">
+ </head>
+<body>
+    <div class="login-container" id="userLogin">
+        <div class="login-card">
+            <h1>用户登录</h1>
+            <p>请输入账号密码进入聊天</p>
+            <div class="login-form">
+                <input type="text" id="login-username" placeholder="用户名" class="login-input"/>
+                <input type="password" id="login-password" placeholder="密码" class="login-input"/>
+                <button class="btn" @click="doLogin()">登录</button>
+                <button class="btn ghost" @click="doRegister()">注册</button>
+                <div class="error" v-if="loginError">{{loginError}}</div>
+            </div>
+            <a class="back-link" href="/pages/entry.html">返回身份选择</a>
+        </div>
+    </div>
+</body>
+
+<script src="../../libs/vue.min.js"></script>
+<script src="../../libs/axios.min.js"></script>
+<script src="../../libs/jquery-3.4.1.min.js"></script>
+<script src="../../libs/js.cookie.min.js"></script>
+<script src="../../js/cookieUtils.js"></script>
+<script src="../../js/request.js"></script>
+<script src="../../js/apis/admin/authApi.js"></script>
+
+<script>
+    new Vue({
+        el: "#userLogin",
+        data() {
+            return { loginError: null }
+        },
+        methods: {
+            doLogin() {
+                this.loginError = null;
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                if (username.trim() === '' || password.trim() === '') {
+                    this.loginError = '请输入用户名和密码';
+                    return;
+                }
+                authApi.login({username: username.trim(), password: password.trim()}).then((result) => {
+                    cookieUtils.setToken(result.token);
+                    cookieUtils.setUserInfo(result.user);
+                    window.location.href = '/pages/chat-doctor.html';
+                }).catch((err) => {
+                    this.loginError = '登录失败，请检查用户名或密码';
+                });
+            },
+            doRegister() {
+                this.loginError = null;
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                if (username.trim() === '' || password.trim() === '') {
+                    this.loginError = '请输入用户名和密码';
+                    return;
+                }
+                authApi.register({username: username.trim(), password: password.trim()}).then((result) => {
+                    cookieUtils.setToken(result.token);
+                    cookieUtils.setUserInfo(result.user);
+                    window.location.href = '/pages/chat-doctor.html';
+                }).catch((err) => {
+                    this.loginError = '注册失败，用户名可能已存在';
+                });
+            }
+        }
+    });
+</script>
+</html>

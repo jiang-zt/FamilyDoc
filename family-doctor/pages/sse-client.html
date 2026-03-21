@@ -20,7 +20,11 @@
     if (window.EventSource) {
         // 创建一个EventSource对象，建立SSE连接
         //仅仅是发起一个建立请求
-        source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userId);
+        var token = '';
+        if (window.cookieUtils && cookieUtils.getToken) {
+            token = cookieUtils.getToken();
+        }
+        source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userId + '&token=' + token);
 
         // 建立连接成功，则会触发open事件
         //消息流转回来后，会触发open事件 才是真正建立连接

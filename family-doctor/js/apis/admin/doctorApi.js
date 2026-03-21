@@ -15,7 +15,13 @@ window.doctorApi = {
         })
     },
 
-}
+    deleteRecords: function(who) {
+        return instance({
+            url: '/ollama/deleteRecords?who=' + who,
+            method: 'delete',
+        })
+    },
 
+}
 
 

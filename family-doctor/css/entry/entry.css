@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=DM+Serif+Display&display=swap');
+
+:root {
+    --bg-1: #e7f2ff;
+    --bg-2: #f8fbff;
+    --glass: rgba(255, 255, 255, 0.7);
+    --ink: #0b1220;
+    --muted: #5a6b87;
+    --primary: #0f5bff;
+    --primary-2: #4dd2ff;
+    --stroke: rgba(12, 28, 61, 0.1);
+    --shadow: 0 20px 60px rgba(10, 30, 80, 0.18);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+    background:
+        radial-gradient(800px 500px at 10% 10%, #cfe6ff 0%, transparent 55%),
+        radial-gradient(700px 450px at 90% 0%, #d7f5ff 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    color: var(--ink);
+}
+
+.entry-container {
+    width: min(960px, 92vw);
+}
+
+.entry-card {
+    background: var(--glass);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+    padding: 28px;
+    text-align: center;
+}
+
+.entry-card h1 {
+    font-family: "DM Serif Display", serif;
+    margin: 0 0 8px 0;
+    font-size: 32px;
+}
+
+.entry-card p {
+    margin: 0 0 20px 0;
+    color: var(--muted);
+}
+
+.entry-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.role-card {
+    display: block;
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid var(--stroke);
+    text-decoration: none;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.8);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.role-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(15, 91, 255, 0.18);
+}
+
+.role-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.role-desc {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.role-card.admin {
+    background: linear-gradient(120deg, rgba(15, 91, 255, 0.12), rgba(77, 210, 255, 0.2));
+}

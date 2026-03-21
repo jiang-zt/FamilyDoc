@@ -11,8 +11,14 @@
         <div class="chat-header">
             家庭医生 <block v-if="currentUserName != null">正在和<strong style="color: rgb(4, 6, 6);">{{currentUserName}}</strong>沟通中</block>
             <div class="user-input-container" v-if="currentUserName == null">
-                <input type="text" id="user-name" placeholder="输入用户名" class="user-input-field"/>
-                <button class="submit-button" @click="submitUserName()">建立连接</button>
+                <input type="text" id="login-username" placeholder="用户名" class="user-input-field"/>
+                <input type="password" id="login-password" placeholder="密码" class="user-input-field"/>
+                <button class="submit-button" @click="doLogin()">登录</button>
+                <button class="submit-button" @click="doRegister()">注册</button>
+                <div class="login-error" v-if="loginError">{{loginError}}</div>
+            </div>
+            <div class="user-input-container" v-else>
+                <button class="submit-button" @click="doLogout()">退出登录</button>
             </div>
         </div>
         <div class="chat-messages" id="chat-messages">
@@ -20,10 +26,12 @@
             <block v-for="(item, index) in chatList">
                 <div class="message user" v-if="item.chatType === 'user'">
                     <div class="text">{{ item.content }}</div>
-                    <div class="user-avatar">风</div>
+                    <div class="user-avatar">我</div>
                 </div>
-                <div class="message bot" v-else>
-                    <div class="avatar">医</div>
+               <div class="message bot" v-else>
+                    <div class="avatar">
+                        <img class="avatar-img" src="../../img/doctor-avatar.png" alt="doctor">
+                    </div>
                     <div class="text" v-html="item.content"></div>
                 </div>
             </block>
@@ -32,6 +40,7 @@
         <div class="chat-input">
             <input type="text" id="user-input" value="" placeholder="请输入内容..." @keydown="handleKeyDown(event)">
             <button id="btn-chat" @click="doChat()">发送</button>
+            <button id="btn-clear" @click="clearChatRecords()">清空记录</button>
         </div>
     </div>
 
@@ -47,6 +56,7 @@
 
 <script src="../../js/cookieUtils.js"></script>
 <script src="../../js/request.js"></script>
+<script src="../../js/apis/admin/authApi.js"></script>
 <script src="../../js/apis/admin/doctorApi.js"></script>
 
 <script>
@@ -61,12 +71,14 @@
 				botMsgId: null,
                 currentUserName: null,
                 chatList: [],
+                loginError: null,
 			}
 		},
 		created() { 
 			var me = this;
 		},
 		mounted() {
+            this.tryAutoLogin();
             this.scrollToBottom();
         },
 		watch: {
@@ -78,7 +90,8 @@
                 let source = null;
                 if (window.EventSource) {
                     // 建立连接
-                    source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userName);
+                    var token = cookieUtils.getToken();
+                    source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userName + '&token=' + token);
                     console.log("连接用户=" + userName);
                     me.currentUserName = userName;
                     
@@ -154,22 +167,83 @@
                 }
             },
 
-            submitUserName() {
-                const userName = document.getElementById('user-name').value;
-                if (userName.trim() === '') {
-                    alert('请输入沟通用户名');
+            tryAutoLogin() {
+                var userInfo = cookieUtils.getUserInfo();
+                var token = cookieUtils.getToken();
+                if (!userInfo || !token) {
                     return;
                 }
-                // alert('用户名: ' + userName);
-                // 在这里可以添加更多的逻辑来处理用户名
-                // this.currentUserName = userName;
-                this.initSSE(userName);
 
-                this.getChatRecords(userName);
+                authApi.me().then((result) => {
+                    this.currentUserName = result.username;
+                    this.initSSE(this.currentUserName);
+                    this.getChatRecords(this.currentUserName);
+                }).catch((err) => {
+                    cookieUtils.removeUserInfo();
+                    cookieUtils.removeToken();
+                });
+            },
 
-                setTimeout(() => {
-                    this.scrollToBottom();
-                }, 300);
+            doLogin() {
+                this.loginError = null;
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                if (username.trim() === '' || password.trim() === '') {
+                    this.loginError = '请输入用户名和密码';
+                    return;
+                }
+
+                authApi.login({username: username.trim(), password: password.trim()}).then((result) => {
+                    cookieUtils.setToken(result.token);
+                    cookieUtils.setUserInfo(result.user);
+                    this.currentUserName = result.user.username;
+                    this.initSSE(this.currentUserName);
+                    this.getChatRecords(this.currentUserName);
+                }).catch((err) => {
+                    this.loginError = '登录失败，请检查用户名或密码';
+                });
+            },
+
+            doRegister() {
+                this.loginError = null;
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                if (username.trim() === '' || password.trim() === '') {
+                    this.loginError = '请输入用户名和密码';
+                    return;
+                }
+                authApi.register({username: username.trim(), password: password.trim()}).then((result) => {
+                    cookieUtils.setToken(result.token);
+                    cookieUtils.setUserInfo(result.user);
+                    this.currentUserName = result.user.username;
+                    this.initSSE(this.currentUserName);
+                    this.getChatRecords(this.currentUserName);
+                }).catch((err) => {
+                    this.loginError = '注册失败，用户名可能已存在';
+                });
+            },
+
+            doLogout() {
+                cookieUtils.removeUserInfo();
+                cookieUtils.removeToken();
+                this.currentUserName = null;
+                this.chatList = [];
+            },
+
+            clearChatRecords() {
+                var currentUserName = this.currentUserName;
+                if (currentUserName == null || currentUserName == '') {
+                    alert('请先登录');
+                    return;
+                }
+                if (!confirm('确认清空当前用户聊天记录？')) {
+                    return;
+                }
+                doctorApi.deleteRecords(currentUserName).then((result) => {
+                    this.chatList = [];
+                }).catch((err) => {
+                    alert('清空失败，请稍后重试');
+                });
             },
 
             getChatRecords(who) {
@@ -198,7 +272,7 @@
                 if (pendingMsg === '') return;
 
                 if (currentUserName == null || currentUserName == '') {
-                    alert('请输入沟通用户名');
+                    alert('请先登录');
                     return;
                 }
 
@@ -218,6 +292,7 @@
                 this.chatList.push(newUserContent);
 
                 document.getElementById('user-input').value = '';
+                this.scrollToBottom();
             },
 
             generateRandomId(length) {
@@ -231,8 +306,13 @@
             },
 
             scrollToBottom() {
-                const chatMessages = document.getElementById('chat-messages');
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                this.$nextTick(function () {
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (!chatMessages) {
+                        return;
+                    }
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
             }
         }
 	});

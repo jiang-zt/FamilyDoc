@@ -26,6 +26,7 @@ instance.interceptors.request.use(
         if (userToken) {
             // console.log("userToken = " + userToken);
             config.headers['headerUserToken'] = userToken;
+            config.headers['Authorization'] = 'Bearer ' + userToken;
         }
 
         return config
@@ -46,6 +47,10 @@ instance.interceptors.response.use(
     error => {
         console.log('err: ' + error) // for debug
         console.log('err: ' + error.data) // for debug
+        if (error && error.response && error.response.status === 401) {
+            cookieUtils.removeUserInfo();
+            cookieUtils.removeToken();
+        }
         return Promise.reject(error)
     }
 )

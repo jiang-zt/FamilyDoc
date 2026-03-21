@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body>
+    <div class="admin-container" id="adminPage">
+        <header class="admin-header">
+            <div>
+                <h1>管理员后台</h1>
+                <p>管理用户与账号信息</p>
+            </div>
+            <div class="admin-actions">
+                <button class="btn" @click="logout()">退出登录</button>
+            </div>
+        </header>
+
+        <section class="admin-section">
+            <div class="section-header">
+                <h2>用户列表</h2>
+                <button class="btn ghost" @click="loadUsers()">刷新</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="user in users" :key="user.id">
+                            <td>{{user.id}}</td>
+                            <td>{{user.username}}</td>
+                            <td>
+                                <button class="btn danger" @click="removeUser(user)">删除</button>
+                            </td>
+                        </tr>
+                        <tr v-if="users.length === 0">
+                            <td colspan="3" class="empty">暂无用户</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="error" v-if="errorMsg">{{errorMsg}}</div>
+        </section>
+
+        <section class="admin-section chat-users">
+            <div class="section-header">
+                <h2>聊天历史用户</h2>
+                <button class="btn ghost" @click="loadChatUsers()">刷新</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="name in chatUsers" :key="name">
+                            <td>{{name}}</td>
+                        </tr>
+                        <tr v-if="chatUsers.length === 0">
+                            <td class="empty">暂无历史用户</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</body>
+
+<script src="../../libs/vue.min.js"></script>
+<script src="../../libs/axios.min.js"></script>
+<script src="../../libs/jquery-3.4.1.min.js"></script>
+<script src="../../libs/js.cookie.min.js"></script>
+<script src="../../js/cookieUtils.js"></script>
+<script src="../../js/request.js"></script>
+<script src="../../js/apis/admin/adminApi.js"></script>
+
+<script>
+    var adminPage = new Vue({
+        el: "#adminPage",
+        data() {
+            return {
+                users: [],
+                chatUsers: [],
+                errorMsg: null,
+            }
+        },
+        mounted() {
+            this.loadUsers();
+            this.loadChatUsers();
+        },
+        methods: {
+            loadUsers() {
+                this.errorMsg = null;
+                adminApi.listUsers().then((result) => {
+                    this.users = result || [];
+                }).catch((err) => {
+                    this.errorMsg = '加载失败或无权限';
+                });
+            },
+            loadChatUsers() {
+                adminApi.listChatUsers().then((result) => {
+                    this.chatUsers = result || [];
+                }).catch((err) => {
+                    // ignore to keep admin list usable
+                });
+            },
+            removeUser(user) {
+                if (!confirm('确认删除用户 ' + user.username + ' ?')) {
+                    return;
+                }
+                adminApi.deleteUser(user.id).then((result) => {
+                    this.loadUsers();
+                }).catch((err) => {
+                    this.errorMsg = '删除失败';
+                });
+            },
+            logout() {
+                cookieUtils.removeUserInfo();
+                cookieUtils.removeToken();
+                window.location.href = '/pages/chat-doctor.html';
+            }
+        }
+    });
+</script>
+</html>

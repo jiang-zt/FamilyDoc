@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
+:root {
+    --bg-1: #e7f2ff;
+    --bg-2: #f8fbff;
+    --glass: rgba(255, 255, 255, 0.7);
+    --ink: #0b1220;
+    --muted: #5a6b87;
+    --primary: #0f5bff;
+    --stroke: rgba(12, 28, 61, 0.1);
+    --shadow: 0 20px 60px rgba(10, 30, 80, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+    background:
+        radial-gradient(800px 500px at 10% 10%, #cfe6ff 0%, transparent 55%),
+        radial-gradient(700px 450px at 90% 0%, #d7f5ff 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    color: var(--ink);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 30px;
+}
+
+.user-container {
+    width: min(900px, 96vw);
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+    padding: 24px;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.user-header h1 {
+    font-family: "DM Serif Display", serif;
+    margin: 0 0 6px 0;
+}
+
+.user-header p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(120deg, var(--primary) 0%, #4dd2ff 100%);
+    color: #fff;
+    font-weight: 600;
+}
+
+.btn.ghost {
+    background: transparent;
+    border: 1px solid var(--stroke);
+    color: var(--ink);
+}
+
+.user-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid var(--stroke);
+}
+
+.user-card h2 {
+    margin-top: 0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--stroke);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.error {
+    margin-top: 12px;
+    color: #b42318;
+}
