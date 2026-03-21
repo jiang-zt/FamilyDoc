@@ -1,25 +1,25 @@
 package com.itzixi.service.impl;
 
 import com.itzixi.bean.ChatMetric;
-import com.itzixi.utils.PromptLoader;
 import com.itzixi.service.ChatMetricService;
 import com.itzixi.service.ChatRecordService;
 import com.itzixi.service.OllamaService;
 import com.itzixi.utils.ChatTypeEnum;
+import com.itzixi.utils.DashscopeChatClient;
+import com.itzixi.utils.PromptLoader;
 import com.itzixi.utils.SSEMsgType;
 import com.itzixi.utils.SSEServer;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.ChatResponse;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.ollama.OllamaChatClient;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class OllamaServiceImpl implements OllamaService {
 
     @Resource
-    private OllamaChatClient ollamaChatClient;
+    private DashscopeChatClient dashscopeChatClient;
 
     @Resource
     private ChatRecordService chatRecordService;
@@ -45,39 +45,27 @@ public class OllamaServiceImpl implements OllamaService {
     @Resource
     private PromptLoader promptLoader;
 
-    @org.springframework.beans.factory.annotation.Value("${spring.ai.ollama.chat.model:unknown}")
-    private String modelName;
-
     @Override
     public Object aiOllamaChat(String msg) {
-        return ollamaChatClient.call(msg);
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", promptLoader.getSystemPrompt()));
+        messages.add(Map.of("role", "user", "content", msg));
+        return dashscopeChatClient.chat(messages);
     }
 
     @Override
     public Flux<ChatResponse> aiOllamaStream1(String msg) {
-        // 代码执行到此处的时间  22:00:00 - 开始时间
-
-        Prompt prompt = new Prompt(new UserMessage(msg));
-        Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
-
-        // 代码执行到此处的时间  22:01:30 - 结束时间
-        // 两个时间的时间差为1分30秒，则总计90秒
-
-        return streamResponse;
+        throw new UnsupportedOperationException("DashScope compatible client does not return ChatResponse stream");
     }
 
     @Override
     public List<String> aiOllamaStream2(String msg) {
-        Prompt prompt = new Prompt(new UserMessage(msg));
-        Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
-
-        List<String> list = streamResponse.toStream().map(chatResponse -> {
-            String content = chatResponse.getResult().getOutput().getContent();
-//            System.out.println(content);
-            log.info(content);
-            return content;
-        }).collect(Collectors.toList());
-
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", promptLoader.getSystemPrompt()));
+        messages.add(Map.of("role", "user", "content", msg));
+        String content = dashscopeChatClient.chat(messages);
+        List<String> list = new ArrayList<>();
+        list.add(content);
         return list;
     }
 
@@ -87,43 +75,23 @@ public class OllamaServiceImpl implements OllamaService {
         // 保存用户发送的记录到数据库
         chatRecordService.saveChatRecord(userName, message, ChatTypeEnum.USER);
 
-        if (isGreeting(message)) {
-            String htmlResult = buildGreetingHtml();
-            SSEServer.sendMessage(userName, htmlResult, SSEMsgType.ADD);
-            SSEServer.sendMessage(userName, "GG", SSEMsgType.FINISH);
-            chatRecordService.saveChatRecord(userName, htmlResult, ChatTypeEnum.BOT);
-
-            ChatMetric metric = new ChatMetric();
-            metric.setUserName(userName);
-            metric.setQuestion(message);
-            metric.setModel("greeting");
-            metric.setPromptVersion(promptLoader.getPromptVersion());
-            metric.setFirstTokenMs(0L);
-            metric.setTotalMs(0L);
-            metric.setOutputChars(htmlResult.length());
-            metric.setOutputTokens(estimateTokens(htmlResult));
-            metric.setAccuracyScore(null);
-            metric.setCreatedAt(LocalDateTime.now());
-            chatMetricService.saveMetric(metric);
-            return;
-        }
-
-        // 构造 prompt（系统指令 + 用户问题）
-        String systemContent = promptLoader.getSystemPrompt();
-        Prompt prompt = new Prompt(
-                List.of(
-                        new org.springframework.ai.chat.messages.SystemMessage(systemContent),
-                        new UserMessage(message)
-                )
-        );
+        // 构造消息（系统指令 + 用户问题）
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", promptLoader.getSystemPrompt()));
+        messages.add(Map.of("role", "user", "content", message));
         //获取返回信息流
         long startNs = System.nanoTime();
         final long[] firstTokenNs = { -1L };
 
-        Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
+        Flux<String> streamResponse = dashscopeChatClient.stream(messages);
+    
+        streamResponse
+            .doOnNext(content -> System.out.println("收到块: " + content))
+            .doOnComplete(() -> System.out.println("流式响应完成"))
+            .doOnError(error -> System.err.println("错误: " + error.getMessage()))
+            .subscribe();
         //提取信息，转为List<String>类型
-        List<String> list = streamResponse.toStream().map(chatResponse -> {
-            String content = chatResponse.getResult().getOutput().getContent();
+        List<String> list = streamResponse.toStream().map(content -> {
             String safeContent = sanitizeChunk(content);
             if (safeContent != null && !safeContent.isEmpty() && firstTokenNs[0] < 0) {
                 firstTokenNs[0] = System.nanoTime();
@@ -132,6 +100,23 @@ public class OllamaServiceImpl implements OllamaService {
             log.info(safeContent);
             return safeContent;
         }).collect(Collectors.toList());
+
+        // 兜底：如果流式没有拿到任何有效内容，降级为一次性返回，避免前端无回复
+        boolean hasAnyContent = list.stream().anyMatch(s -> s != null && !s.isBlank());
+        if (!hasAnyContent) {
+            String fallback = sanitizeChunk(dashscopeChatClient.chat(messages));
+            if (fallback != null && !fallback.isBlank()) {
+                SSEServer.sendMessage(userName, fallback, SSEMsgType.ADD);
+                list = new ArrayList<>();
+                list.add(fallback);
+                if (firstTokenNs[0] < 0) {
+                    firstTokenNs[0] = System.nanoTime();
+                }
+                log.warn("Stream response was empty, fallback to non-stream chat for user: {}", userName);
+            } else {
+                log.warn("Both stream and fallback chat returned empty content for user: {}", userName);
+            }
+        }
 
         SSEServer.sendMessage(userName, "GG", SSEMsgType.FINISH);
 
@@ -150,7 +135,7 @@ public class OllamaServiceImpl implements OllamaService {
         ChatMetric metric = new ChatMetric();
         metric.setUserName(userName);
         metric.setQuestion(message);
-        metric.setModel(modelName);
+        metric.setModel(dashscopeChatClient.getModel());
         metric.setPromptVersion(promptLoader.getPromptVersion());
         metric.setFirstTokenMs(firstTokenMs);
         metric.setTotalMs(totalMs);
@@ -178,12 +163,18 @@ public class OllamaServiceImpl implements OllamaService {
         if (normalized.isEmpty()) {
             return false;
         }
+        normalized = normalized.replaceAll("[\\p{Punct}\\s]", "");
+        if (normalized.isEmpty()) {
+            return false;
+        }
         String[] greetings = new String[] {
-                "你好", "您好", "在吗", "hello", "hi", "hey", "早上好", "晚上好"
+                "你好", "您好", "在吗", "hello", "hi", "hey", "哈喽", "嗨", "早上好", "晚上好", "早安", "晚安"
         };
         for (String g : greetings) {
-            if (normalized.equals(g)) {
-                return true;
+            if (normalized.contains(g)) {
+                if (normalized.length() <= 6) {
+                    return true;
+                }
             }
         }
         return false;

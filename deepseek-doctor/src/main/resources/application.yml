@@ -23,3 +23,11 @@ auth:
   jwt:
     secret: change-this-secret-in-prod
     expire-minutes: 120
+  admin:
+    username: admin
+
+dashscope:
+  base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api-key: ${DASHSCOPE_API_KEY:}
+  model: qwen-plus
+  temperature: 0.2

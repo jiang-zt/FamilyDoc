@@ -8,16 +8,12 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.ChatResponse;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.ollama.OllamaChatClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @ClassName HelloController
@@ -33,10 +29,6 @@ public class OllamaController {
 //    http://127.0.0.1:8080/ollama/ai/chat
 //    http://150.109.247.64:9090/ollama/ai/chat?msg=你是谁？
 
-    //import org.springframework.ai.ollama.OllamaChatClient;
-    @Resource
-    private OllamaChatClient ollamaChatClient;
-
     @Resource
     private OllamaService ollamaService;
 
@@ -48,31 +40,17 @@ public class OllamaController {
 
     @GetMapping("/ai/chat")
     public Object aiOllamaChat(@RequestParam String msg) {
-        // 同步调用deepseek，当前页面会卡住，直到获得所有的数据才会返回给页面
-        return ollamaChatClient.call(msg);
+        return ollamaService.aiOllamaChat(msg);
     }
     //json格式 仍然直接返回所有值 没有卡顿
     @GetMapping("/ai/stream1")
     public Flux<ChatResponse> aiOllamaStream1(@RequestParam String msg) {
-        Prompt prompt = new Prompt(new UserMessage(msg));
-        Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
-        return streamResponse;
+        return ollamaService.aiOllamaStream1(msg);
     }
 
     @GetMapping("/ai/stream2")
     public List<String> aiOllamaStream2(@RequestParam String msg) {
-        Prompt prompt = new Prompt(new UserMessage(msg));
-        Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
-
-        List<String> list = streamResponse.toStream().map(chatResponse -> {
-            String content = chatResponse.getResult().getOutput().getContent();
-//            System.out.println(content);
-            log.info(content);
-            return content;//返回收集到的结果集合 用集合接收
-        }).collect(Collectors.toList());
-        //将返回的content添加到list再返回
-        //streamResponse.toStream() 是JDK8的特性
-        return list;//手动流式返回
+        return ollamaService.aiOllamaStream2(msg);
     }//要结合SSE流式输出
 
 
@@ -129,6 +107,19 @@ public class OllamaController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "用户不匹配");
         }
         return chatRecordService.getChatRecordList(who);
+    }
+
+    @DeleteMapping("/deleteRecords")
+    public Object deleteRecords(@RequestParam String who, HttpServletRequest request) {
+        String authUser = authHelper.requireUsername(request);
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        if (!authUser.equals(who)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "用户不匹配");
+        }
+        int deleted = chatRecordService.deleteChatRecords(who);
+        return deleted;
     }
 
 

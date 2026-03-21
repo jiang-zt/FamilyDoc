@@ -11,4 +11,8 @@ public interface AppUserService {
     AppUser findById(String id);
 
     AppUser findByUsername(String username);
+
+    java.util.List<AppUser> listAll();
+
+    int deleteById(String id);
 }

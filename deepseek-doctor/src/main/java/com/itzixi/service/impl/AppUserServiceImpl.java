@@ -57,4 +57,14 @@ public class AppUserServiceImpl implements AppUserService {
         query.eq("username", username);
         return appUserMapper.selectOne(query);
     }
+
+    @Override
+    public java.util.List<AppUser> listAll() {
+        return appUserMapper.selectList(null);
+    }
+
+    @Override
+    public int deleteById(String id) {
+        return appUserMapper.deleteById(id);
+    }
 }

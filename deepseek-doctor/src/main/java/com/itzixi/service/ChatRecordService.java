@@ -24,4 +24,17 @@ public interface ChatRecordService {
      */
     public List<ChatRecord> getChatRecordList(String userName);
 
+    /**
+     * 删除用户的聊天记录
+     * @param userName
+     * @return 删除条数
+     */
+    public int deleteChatRecords(String userName);
+
+    /**
+     * 查询历史聊天中的用户列表（distinct family_member）
+     * @return 用户名列表
+     */
+    public java.util.List<String> listChatUsers();
+
 }

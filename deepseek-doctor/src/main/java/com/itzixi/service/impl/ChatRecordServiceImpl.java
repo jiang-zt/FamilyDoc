@@ -43,4 +43,25 @@ public class ChatRecordServiceImpl implements ChatRecordService {
 
         return chatRecordMapper.selectList(queryWrapper);
     }
+
+    @Override
+    public int deleteChatRecords(String userName) {
+        QueryWrapper<ChatRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("family_member", userName);
+        return chatRecordMapper.delete(queryWrapper);
+    }
+
+    @Override
+    public java.util.List<String> listChatUsers() {
+        QueryWrapper<ChatRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("distinct family_member");
+        java.util.List<ChatRecord> records = chatRecordMapper.selectList(queryWrapper);
+        java.util.List<String> users = new java.util.ArrayList<>();
+        for (ChatRecord record : records) {
+            if (record.getFamilyMember() != null) {
+                users.add(record.getFamilyMember());
+            }
+        }
+        return users;
+    }
 }

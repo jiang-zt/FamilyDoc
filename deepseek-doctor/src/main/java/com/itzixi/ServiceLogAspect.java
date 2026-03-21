@@ -38,6 +38,7 @@ public class ServiceLogAspect {
         stopWatch.start();
 
         Object proceed = joinPoint.proceed();
+        
         String point = joinPoint.getTarget().getClass().getName()
                         + "." +
                        joinPoint.getSignature().getName();
@@ -48,13 +49,13 @@ public class ServiceLogAspect {
         // 获得时间差
 //        long takeTime = end - begin;
 
-        // 打印任务的耗时统计
-        log.info(stopWatch.prettyPrint());
-        log.info(stopWatch.shortSummary());
-
-        // 任务信息总览
-        log.info("所有任务的总耗时：" + stopWatch.getTotalTimeMillis());
-        log.info("任务总数：" + stopWatch.getTaskCount());
+        // 打印任务的耗时统计（已关闭，避免刷屏）
+        // log.info(stopWatch.prettyPrint());
+        // log.info(stopWatch.shortSummary());
+        //
+        // 任务信息总览（已关闭）
+        // log.info("所有任务的总耗时：" + stopWatch.getTotalTimeMillis());
+        // log.info("任务总数：" + stopWatch.getTaskCount());
 
 //        log.info("直接方法：{} 执行的时间为 {} 毫秒", point, takeTime);
 
