@@ -31,4 +31,4 @@ spring:
 
 
 website:
-  domain: http://172.20.10.8:5501
+  domain: http://127.0.0.1:5500

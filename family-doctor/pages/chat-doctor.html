@@ -9,7 +9,7 @@
 <body>
     <div class="chat-container" id="doctorPage">
         <div class="chat-header">
-            家庭医生 <block v-if="currentUserName != null">正在和<strong style="color: rgb(166, 237, 217);">{{currentUserName}}</strong>沟通中</block>
+            家庭医生 <block v-if="currentUserName != null">正在和<strong style="color: rgb(4, 6, 6);">{{currentUserName}}</strong>沟通中</block>
             <div class="user-input-container" v-if="currentUserName == null">
                 <input type="text" id="user-name" placeholder="输入用户名" class="user-input-field"/>
                 <button class="submit-button" @click="submitUserName()">建立连接</button>
@@ -78,7 +78,7 @@
                 let source = null;
                 if (window.EventSource) {
                     // 建立连接
-                    source = new EventSource('http://172.20.10.8:8080/sse/connect?userId=' + userName);
+                    source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userName);
                     console.log("连接用户=" + userName);
                     me.currentUserName = userName;
                     

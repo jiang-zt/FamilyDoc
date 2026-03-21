@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek SpringAI Family Doctor - 产品文档</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 20px; background: #fff; }
+        h1 { font-size: 2.5em; margin-bottom: 0.5em; color: #1a1a1a; border-bottom: 3px solid #4a9eff; padding-bottom: 10px; }
+        h2 { font-size: 1.8em; margin: 1.5em 0 0.8em; color: #2c3e50; border-left: 4px solid #4a9eff; padding-left: 15px; }
+        h3 { font-size: 1.4em; margin: 1.2em 0 0.6em; color: #34495e; }
+        p { margin: 0.8em 0; }
+        ul, ol { margin: 0.8em 0 0.8em 1.5em; }
+        li { margin: 0.4em 0; }
+        table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.95em; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "Menlo", "Monaco", "Courier New", monospace; font-size: 0.9em; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; margin: 1em 0; font-size: 0.9em; }
+        pre code { background: none; padding: 0; }
+        blockquote { border-left: 4px solid #4a9eff; padding-left: 15px; margin: 1em 0; color: #555; background: #f8f9fa; padding: 15px; border-radius: 0 6px 6px 0; }
+        .meta { background: #e3f2fd; padding: 15px; border-radius: 6px; margin: 1em 0; }
+        .toc { background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 1em 0; }
+        .toc ul { list-style: none; }
+        .toc a { color: #4a9eff; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        @media print { body { padding: 20px; } h1 { page-break-after: avoid; } h2, h3 { page-break-after: avoid; } pre { page-break-inside: avoid; } }
+    </style>
+</head>
+<body>
+
+<h1>DeepSeek SpringAI Family Doctor</h1>
+<p class="meta"><strong>产品文档</strong> | 版本：1.0-SNAPSHOT | 作者：风间影月 | 创建：2025 年 6 月</p>
+
+<div class="toc">
+<h2>📋 目录</h2>
+<ul>
+<li><a href="#overview">产品概述</a></li>
+<li><a href="#architecture">技术架构</a></li>
+<li><a href="#api">API 端点</a></li>
+<li><a href="#data">数据模型</a></li>
+<li><a href="#features">核心功能</a></li>
+<li><a href="#config">配置文件</a></li>
+<li><a href="#structure">项目结构</a></li>
+<li><a href="#deploy">开发与部署</a></li>
+<li><a href="#scenarios">使用场景</a></li>
+</ul>
+</div>
+
+<h2 id="overview">📋 产品概述</h2>
+<p><strong>DeepSeek SpringAI Family Doctor</strong> 是一个基于 <strong>Spring AI + Ollama</strong> 的家庭医生 AI 对话系统。它通过本地部署的 DeepSeek 模型为用户提供健康咨询、医疗问答等服务，支持流式输出和历史聊天记录保存。</p>
+
+<h3>核心价值</h3>
+<ul>
+<li>🏠 <strong>家庭医生</strong> - 为家庭成员提供 7x24 小时健康咨询</li>
+<li>💬 <strong>AI 对话</strong> - 基于 DeepSeek 模型的智能医疗问答</li>
+<li>📊 <strong>流式输出</strong> - SSE 实时推送，用户体验流畅</li>
+<li>💾 <strong>记录保存</strong> - 聊天记录持久化到 MySQL 数据库</li>
+</ul>
+
+<h2 id="architecture">🏗️ 技术架构</h2>
+
+<h3>技术栈</h3>
+<table>
+<tr><th>组件</th><th>版本</th><th>说明</th></tr>
+<tr><td>JDK</td><td>21</td><td>Java 运行环境</td></tr>
+<tr><td>Spring Boot</td><td>3.3.8</td><td>应用框架</td></tr>
+<tr><td>Spring AI Ollama</td><td>1.0.3</td><td>AI 模型集成</td></tr>
+<tr><td>MyBatis-Plus</td><td>3.0.4</td><td>ORM 框架</td></tr>
+<tr><td>MySQL</td><td>8.0.33</td><td>数据库</td></tr>
+<tr><td>Lombok</td><td>1.18.34</td><td>代码简化</td></tr>
+</table>
+
+<h3>架构分层</h3>
+<pre>┌─────────────────────────────────────────┐
+│           Controller Layer              │
+│  OllamaController, SSEController        │
+├─────────────────────────────────────────┤
+│           Service Layer                 │
+│  OllamaService, ChatRecordService       │
+├─────────────────────────────────────────┤
+│           Mapper/DAO Layer              │
+│  ChatRecordMapper                       │
+├─────────────────────────────────────────┤
+│           Data Layer                    │
+│  MySQL Database                         │
+└─────────────────────────────────────────┘
+         ↑
+    Ollama (DeepSeek Model)
+    http://127.0.0.1:11434</pre>
+
+<h2 id="api">🔌 API 端点</h2>
+
+<h3>基础健康检查</h3>
+<table>
+<tr><th>方法</th><th>端点</th><th>说明</th></tr>
+<tr><td>GET</td><td>/hello/world</td><td>健康检查</td></tr>
+</table>
+
+<h3>AI 对话接口</h3>
+<table>
+<tr><th>方法</th><th>端点</th><th>说明</th><th>响应类型</th></tr>
+<tr><td>GET</td><td>/ollama/ai/chat</td><td>同步 AI 对话（阻塞）</td><td>String</td></tr>
+<tr><td>GET</td><td>/ollama/ai/stream1</td><td>流式对话 v1</td><td>Flux&lt;ChatResponse&gt;</td></tr>
+<tr><td>GET</td><td>/ollama/ai/stream2</td><td>流式对话 v2（手动收集）</td><td>List&lt;String&gt;</td></tr>
+<tr><td>GET</td><td>/ollama/ai/v2/chat</td><td>Service 层同步对话</td><td>String</td></tr>
+<tr><td>GET</td><td>/ollama/ai/v2/stream1</td><td>Service 层流式 v1</td><td>Flux&lt;ChatResponse&gt;</td></tr>
+<tr><td>GET</td><td>/ollama/ai/v2/stream2</td><td>Service 层流式 v2</td><td>List&lt;String&gt;</td></tr>
+<tr><td>POST</td><td>/ollama/ai/v3/doctor/stream</td><td><strong>生产版本</strong> - SSE 流式推送</td><td>SSE</td></tr>
+<tr><td>GET</td><td>/ollama/getRecords</td><td>获取聊天记录</td><td>List&lt;ChatRecord&gt;</td></tr>
+</table>
+
+<h3>请求参数</h3>
+<p><strong>v3 版本（推荐）</strong></p>
+<pre>{
+  "currentUserName": "张三",
+  "message": "我最近头痛，可能是什么原因？"
+}</pre>
+
+<h2 id="data">📦 数据模型</h2>
+
+<h3>ChatEntity（请求实体）</h3>
+<pre>{
+  "currentUserName": "String",  // 用户标识
+  "message": "String"           // 用户提问内容
+}</pre>
+
+<h3>ChatRecord（数据库记录）</h3>
+<pre>{
+  "id": "String",              // 唯一 ID (雪花算法)
+  "content": "String",         // 聊天内容
+  "chatType": "String",        // USER / BOT
+  "chatTime": "LocalDateTime", // 聊天时间
+  "familyMember": "String"     // 家庭成员标识
+}</pre>
+
+<h2 id="features">🚀 核心功能</h2>
+
+<h3>1. AI 对话（同步）</h3>
+<ul>
+<li>调用 Ollama API 获取 DeepSeek 模型响应</li>
+<li>阻塞式等待完整响应</li>
+<li>适合简单问答场景</li>
+</ul>
+
+<h3>2. 流式输出（SSE）</h3>
+<ul>
+<li>SSE Server 管理客户端连接</li>
+<li>实时推送 AI 生成的每个 token</li>
+<li>用户体验更流畅，无需等待完整响应</li>
+<li>支持多人在线连接统计</li>
+</ul>
+
+<h3>3. 聊天记录持久化</h3>
+<ul>
+<li>用户消息保存为 ChatTypeEnum.USER</li>
+<li>AI 回复保存为 ChatTypeEnum.BOT</li>
+<li>支持按用户查询历史对话</li>
+</ul>
+
+<h3>4. 连接管理</h3>
+<ul>
+<li>SSE 连接超时/错误/完成回调</li>
+<li>在线人数统计（AtomicInteger）</li>
+<li>自动清理失效连接</li>
+</ul>
+
+<h2 id="config">🔧 配置文件</h2>
+
+<h3>application.yml（主配置）</h3>
+<pre>spring:
+  application:
+    name: deepseek-doctor
+  profiles:
+    active: dev
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+      update-strategy: not_empty
+  mapper-locations: classpath*:/mappers/*.xml</pre>
+
+<h2 id="structure">📁 项目结构</h2>
+<pre>deepseek-doctor/
+├── src/main/java/com/itzixi/
+│   ├── Application.java          # 启动类
+│   ├── ChatConfig.java           # 聊天配置
+│   ├── ServiceLogAspect.java     # 服务日志切面
+│   ├── bean/
+│   │   ├── ChatEntity.java       # 请求实体
+│   │   └── ChatRecord.java       # 数据库实体
+│   ├── controller/
+│   │   ├── HelloController.java  # 健康检查
+│   │   ├── OllamaController.java # AI 对话控制器
+│   │   └── SSEController.java    # SSE 控制器
+│   ├── mapper/
+│   │   └── ChatRecordMapper.java # DAO 接口
+│   ├── service/
+│   │   ├── ChatRecordService.java
+│   │   ├── OllamaService.java
+│   │   └── impl/
+│   │       ├── ChatRecordServiceImpl.java
+│   │       └── OllamaServiceImpl.java
+│   └── utils/
+│       ├── ChatTypeEnum.java     # 聊天类型枚举
+│       ├── SSEMsgType.java       # SSE 消息类型
+│       └── SSEServer.java        # SSE 服务器
+├── src/main/resources/
+│   ├── application.yml
+│   ├── application-dev.yml
+│   ├── application-prod.yml
+│   └── mappers/ChatRecordMapper.xml
+└── pom.xml</pre>
+
+<h2 id="deploy">🛠️ 开发与部署</h2>
+
+<h3>开发环境要求</h3>
+<ul>
+<li>JDK 21</li>
+<li>Maven</li>
+<li>MySQL 8.0+</li>
+<li>Ollama + DeepSeek 模型</li>
+</ul>
+
+<h3>启动命令</h3>
+<pre># 开发环境
+mvn spring-boot:run
+
+# 打包
+mvn clean package
+
+# 运行 JAR
+java -jar target/deepseek-doctor.jar</pre>
+
+<h2 id="scenarios">🎯 使用场景</h2>
+
+<h3>家庭医生咨询</h3>
+<ul>
+<li>症状初步判断</li>
+<li>用药建议查询</li>
+<li>健康知识科普</li>
+<li>就医指导</li>
+</ul>
+
+<h3>技术演示</h3>
+<ul>
+<li>Spring AI 集成示例</li>
+<li>SSE 流式输出实践</li>
+<li>MyBatis-Plus 使用</li>
+</ul>
+
+<h2>⚠️ 注意事项</h2>
+<ol>
+<li><strong>Ollama 服务</strong> - 需要本地运行 Ollama 并加载 DeepSeek 模型</li>
+<li><strong>数据库初始化</strong> - 需要预先创建 chat_record 表</li>
+<li><strong>SSE 连接</strong> - 浏览器需支持 EventSource</li>
+<li><strong>生产配置</strong> - 生产环境需配置正确的数据库连接和 Ollama 地址</li>
+</ol>
+
+<p style="margin-top: 3em; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em;">
+<strong>文档生成：</strong>麻辣大龙虾 🦞 &nbsp;|&nbsp; <strong>生成时间：</strong>2026-03-11 22:28 GMT+8
+</p>
+
+</body>
+</html>
