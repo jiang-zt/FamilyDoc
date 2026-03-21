@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * @Version 1.0
  * @Description SSEController
  **/
+//用于接收客户端连接SSE的请求
 @Slf4j
 @RestController
 @RequestMapping("sse")
@@ -27,6 +28,9 @@ public class SSEController {
      * @param userId
      * @return SseEmitter
      */
+    //当客户端访问 GET /connect?userId={xxx}
+    //方法返回 SseEmitter 对象后，服务器会保持连接开放（HTTP 长连接），持续推送事件到客户端
+    //MediaType.TEXT_EVENT_STREAM_VALUE 声明返回 SSE 数据流 封装在header中
     @GetMapping(path = "connect", produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
     public SseEmitter connect(@RequestParam String userId) {
         return SSEServer.connect(userId);
@@ -85,7 +89,6 @@ public class SSEController {
         SSEServer.stopServer(userId);
         return "OK";
     }
-
     /**
      * @Description: 获得当前所有的会话总连接数（在线人数）
      * @Author 风间影月

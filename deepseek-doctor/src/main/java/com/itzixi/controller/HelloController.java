@@ -10,13 +10,20 @@ import org.springframework.web.bind.annotation.RestController;
  * @Version 1.0
  * @Description HelloController
  **/
+
+/**
+ * RestContoller 注解
+ * 表示使用Restful规范 对外暴露的接口
+ *
+ * @RequestMapping("hello")定义映射
+ */
 @RestController
 @RequestMapping("hello")
 public class HelloController {
 
+    //返回路径
     @GetMapping("world")
     public Object helloWorld() {
         return "Hello 风间影月~~~";
     }
-
 }

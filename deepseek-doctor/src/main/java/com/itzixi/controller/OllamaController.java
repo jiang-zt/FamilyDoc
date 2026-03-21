@@ -29,7 +29,7 @@ public class OllamaController {
 //    http://127.0.0.1:8080/ollama/ai/chat
 //    http://150.109.247.64:9090/ollama/ai/chat?msg=你是谁？
 
-
+    //import org.springframework.ai.ollama.OllamaChatClient;
     @Resource
     private OllamaChatClient ollamaChatClient;
 
@@ -44,7 +44,7 @@ public class OllamaController {
         // 同步调用deepseek，当前页面会卡住，直到获得所有的数据才会返回给页面
         return ollamaChatClient.call(msg);
     }
-
+    //json格式 仍然直接返回所有值 没有卡顿
     @GetMapping("/ai/stream1")
     public Flux<ChatResponse> aiOllamaStream1(@RequestParam String msg) {
         Prompt prompt = new Prompt(new UserMessage(msg));
@@ -61,12 +61,12 @@ public class OllamaController {
             String content = chatResponse.getResult().getOutput().getContent();
 //            System.out.println(content);
             log.info(content);
-            return content;
+            return content;//返回收集到的结果集合 用集合接收
         }).collect(Collectors.toList());
-
-
-        return list;
-    }
+        //将返回的content添加到list再返回
+        //streamResponse.toStream() 是JDK8的特性
+        return list;//手动流式返回
+    }//要结合SSE流式输出
 
 
     @GetMapping("/ai/v2/chat")
@@ -84,6 +84,11 @@ public class OllamaController {
         return ollamaService.aiOllamaStream2(msg);
     }
 
+    /**
+     * 有交流实体的获取返回信息
+     * SpringBoot序列化与反序列化机制
+     * @param chatEntity
+     */
     @PostMapping("/ai/v3/doctor/stream")
     public void aiOllamaV3DoctorStream(@RequestBody ChatEntity chatEntity) {
 
@@ -94,6 +99,11 @@ public class OllamaController {
         ollamaService.doDoctorStreamV3(userName, message);
     }
 
+    /**
+     * 获取聊天记录
+     * @param who
+     * @return
+     */
     @GetMapping("/getRecords")
     public Object aiOllamaV3DoctorStream(@RequestParam String who) {
         return chatRecordService.getChatRecordList(who);

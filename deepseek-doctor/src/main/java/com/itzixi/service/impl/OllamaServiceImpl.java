@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * @Version 1.0
  * @Description OllamaServiceImpl
  **/
+
 @Slf4j
 @Service
 public class OllamaServiceImpl implements OllamaService {
@@ -72,14 +73,14 @@ public class OllamaServiceImpl implements OllamaService {
         // 保存用户发送的记录到数据库
         chatRecordService.saveChatRecord(userName, message, ChatTypeEnum.USER);
 
+        //构造prompt
         Prompt prompt = new Prompt(new UserMessage(message));
+        //获取返回信息流
         Flux<ChatResponse> streamResponse = ollamaChatClient.stream(prompt);
-
+        //提取信息，转为List<String>类型
         List<String> list = streamResponse.toStream().map(chatResponse -> {
             String content = chatResponse.getResult().getOutput().getContent();
-
-            SSEServer.sendMessage(userName, content, SSEMsgType.ADD);
-
+            SSEServer.sendMessage(userName, content, SSEMsgType.ADD);//调用sseServer类向客户端主动推送结果
             log.info(content);
             return content;
         }).collect(Collectors.toList());

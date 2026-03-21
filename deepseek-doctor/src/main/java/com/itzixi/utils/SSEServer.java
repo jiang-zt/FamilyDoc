@@ -23,7 +23,24 @@ public class SSEServer {
     /**
      * 使用map对象，关联用户id和sse的服务连接
      * 进阶提问1：SseEmitter 能不能放在Redis中和userId进行关联？
+     * 直接存储SseEmitter对象是不可行的，原因如下：
+         * SseEmitter不是可序列化对象：
+         * SseEmitter与特定HTTP连接绑定
+         * 包含Servlet容器特定的资源（如响应输出流）
+     * 无法跨JVM或网络传输
+         * 技术生命周期不匹配：
+         * SseEmitter生命周期与HTTP请求相同
+         * Redis存储需要持久化能力
+     *
+     /**
      * 进阶提问2：SseEmitter 如何在集群SpringBoot中存在
+     * 核心问题：如何跨多个服务实例跟踪和管理客户端连接
+     * 1连接状态分散：SseEmitter 绑定到单个 JVM 实例
+     * 2消息广播需求：需要通知所有实例向特定客户端推送消息
+     * 3连接清理：跨实例的失效连接检测
+         * 1. Redis 发布/订阅配置
+         * 2. 集群服务实现
+         * 3. 控制器实现
      */
     private static Map<String, SseEmitter> sseClients = new ConcurrentHashMap<>();
 
@@ -32,20 +49,23 @@ public class SSEServer {
      */
     private static AtomicInteger onlineCounts = new AtomicInteger(0);
 
+    /**
+     * 建立连接
+     * @param userId
+     * @return
+     */
     public static SseEmitter connect(String userId) {
         // 设置超时时间，0代表永不过期；默认30秒，超时未完成任务则会抛出异常
         SseEmitter sseEmitter = new SseEmitter(0L);
 
         // 注册SSE的回调方法
-        sseEmitter.onCompletion(completionCallback(userId));
-        sseEmitter.onError(errorCallback(userId));
-        sseEmitter.onTimeout(timeoutCallback(userId));
+        sseEmitter.onCompletion(completionCallback(userId));//完成
+        sseEmitter.onError(errorCallback(userId));//出错
+        sseEmitter.onTimeout(timeoutCallback(userId));//超时
 
         sseClients.put(userId, sseEmitter);
         log.info("当前创建新的SSE连接，用户ID为: {}", userId);
-
         onlineCounts.getAndIncrement();
-
         return sseEmitter;
     }
 
@@ -120,17 +140,16 @@ public class SSEServer {
         }
 
         SseEmitter sseEmitter = sseClients.get(userId);
-        if (sseEmitter != null) {
+        if (sseEmitter != null){
             // complete 表示执行完毕，断开连接
             sseEmitter.complete();
             removeConnection(userId);
             log.info("连接关闭成功，被关闭的用户为 {}", userId);
-        } else {
+        } else{
             log.warn("当前连接无需关闭，请不要重复操作");
         }
 
     }
-
 
     /**
      * @Description: SSE连接完成后的回调方法（关闭连接的时候调用）

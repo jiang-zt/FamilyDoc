@@ -1,7 +1,6 @@
 package com.itzixi;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.StopWatch;
 
 /**
@@ -10,7 +9,6 @@ import org.springframework.util.StopWatch;
  * @Version 1.0
  * @Description Test
  **/
-@SpringBootTest
 public class MyTest {
 
     /**

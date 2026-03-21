@@ -12,7 +12,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
     url: jdbc:mysql://127.0.0.1:3306/deepseek-doctor?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
-    password: Abc_123456789
+    password:
     hikari:
       pool-name: DataSourceHikariCP           # 连接池的名字
       connection-timeout: 30000               # 等待连接池分配连接的最大时间（毫秒），超过这个时长还没有可用的连接，则会抛出SQLException
@@ -26,8 +26,8 @@ spring:
     ollama:
       base-url: http://127.0.0.1:11434
       chat:
-        model: my-doctor:1.0.2.RELEASE
+        model:
 
-
+#项目部署打包：数据库密码配置 大模型名称配置 域名网段配置
 website:
-  domain: http://150.109.247.64
+  domain: http://134.175.104.219

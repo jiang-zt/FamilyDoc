@@ -78,7 +78,7 @@
                 let source = null;
                 if (window.EventSource) {
                     // 建立连接
-                    source = new EventSource('http://10.0.0.3:8080/sse/connect?userId=' + userName);
+                    source = new EventSource('http://172.20.10.8:8080/sse/connect?userId=' + userName);
                     console.log("连接用户=" + userName);
                     me.currentUserName = userName;
                     

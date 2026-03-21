@@ -20,5 +20,4 @@ public class ChatRecord {
     private String chatType;
     private LocalDateTime chatTime;
     private String familyMember;
-
 }

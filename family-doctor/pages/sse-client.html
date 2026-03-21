@@ -15,12 +15,15 @@
 <script>
 
     let source = null;
+    //每次刷新动态生成用户id字符串
     let userId = Math.random().toString(36).substr(2, 9); // 生成一个随机字符串作为 userId
     if (window.EventSource) {
         // 创建一个EventSource对象，建立SSE连接
-        source = new EventSource('http://10.0.0.3:8080/sse/connect?userId=' + userId);
+        //仅仅是发起一个建立请求
+        source = new EventSource('http://172.20.10.8:8080/sse/connect?userId=' + userId);
 
         // 建立连接成功，则会触发open事件
+        //消息流转回来后，会触发open事件 才是真正建立连接
         source.addEventListener('open', function(e) {
             console.log('建立连接成功...');
 
@@ -81,7 +84,7 @@
 
     } else {
         console.log('您的浏览器不支持SSE');
-        // closeSSE();
+        closeSSE();
     }
 
     function closeSSE() {
