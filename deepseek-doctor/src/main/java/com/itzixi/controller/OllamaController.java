@@ -3,13 +3,17 @@ package com.itzixi.controller;
 import com.itzixi.bean.ChatEntity;
 import com.itzixi.service.ChatRecordService;
 import com.itzixi.service.OllamaService;
+import com.itzixi.utils.AuthHelper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.ChatResponse;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.ollama.OllamaChatClient;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -38,6 +42,9 @@ public class OllamaController {
 
     @Resource
     private ChatRecordService chatRecordService;
+
+    @Resource
+    private AuthHelper authHelper;
 
     @GetMapping("/ai/chat")
     public Object aiOllamaChat(@RequestParam String msg) {
@@ -90,11 +97,19 @@ public class OllamaController {
      * @param chatEntity
      */
     @PostMapping("/ai/v3/doctor/stream")
-    public void aiOllamaV3DoctorStream(@RequestBody ChatEntity chatEntity) {
+    public void aiOllamaV3DoctorStream(@RequestBody ChatEntity chatEntity, HttpServletRequest request) {
 
         log.info(chatEntity.toString());
         String userName = chatEntity.getCurrentUserName();
         String message = chatEntity.getMessage();
+
+        String authUser = authHelper.requireUsername(request);
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        if (!authUser.equals(userName)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "用户不匹配");
+        }
 
         ollamaService.doDoctorStreamV3(userName, message);
     }
@@ -105,7 +120,14 @@ public class OllamaController {
      * @return
      */
     @GetMapping("/getRecords")
-    public Object aiOllamaV3DoctorStream(@RequestParam String who) {
+    public Object aiOllamaV3DoctorStream(@RequestParam String who, HttpServletRequest request) {
+        String authUser = authHelper.requireUsername(request);
+        if (authUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        if (!authUser.equals(who)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "用户不匹配");
+        }
         return chatRecordService.getChatRecordList(who);
     }
 

@@ -127,6 +127,28 @@ CREATE TABLE chat_record (
 );
 ```
 
+CREATE TABLE chat_metric (
+  id VARCHAR(255) PRIMARY KEY,
+  user_name VARCHAR(100),
+  question TEXT,
+  model VARCHAR(100),
+  prompt_version VARCHAR(50),
+  first_token_ms BIGINT,
+  total_ms BIGINT,
+  output_chars INT,
+  output_tokens INT,
+  accuracy_score INT,
+  created_at DATETIME
+);
+
+CREATE TABLE app_user (
+  id VARCHAR(255) PRIMARY KEY,
+  username VARCHAR(100) UNIQUE,
+  password_hash VARCHAR(255),
+  created_at DATETIME,
+  updated_at DATETIME
+);
+
 ---
 
 ## 🚀 核心功能

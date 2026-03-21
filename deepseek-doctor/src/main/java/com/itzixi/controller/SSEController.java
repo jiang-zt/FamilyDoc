@@ -1,13 +1,18 @@
 package com.itzixi.controller;
 
+import com.itzixi.utils.AuthHelper;
 import com.itzixi.utils.SSEMsgType;
 import com.itzixi.utils.SSEServer;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
@@ -22,6 +27,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("sse")
 public class SSEController {
 
+    @Resource
+    private AuthHelper authHelper;
+
     /**
      * @Description: 连接sse服务的接口
      * @Author 风间影月
@@ -32,7 +40,14 @@ public class SSEController {
     //方法返回 SseEmitter 对象后，服务器会保持连接开放（HTTP 长连接），持续推送事件到客户端
     //MediaType.TEXT_EVENT_STREAM_VALUE 声明返回 SSE 数据流 封装在header中
     @GetMapping(path = "connect", produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
-    public SseEmitter connect(@RequestParam String userId) {
+    public SseEmitter connect(@RequestParam String userId, HttpServletRequest request) {
+        String username = authHelper.requireUsername(request);
+        if (username == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        if (!userId.equals(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "用户不匹配");
+        }
         return SSEServer.connect(userId);
     }
 
