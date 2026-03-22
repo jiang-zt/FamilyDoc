@@ -20,7 +20,11 @@ deepseek-springai-family-doctor/
 
 README 展示方式（GitHub 稳定）：
 
-[![观看演示](docs/demo-cover.png)](docs/demo.mp4)
+[![观看演示](https://raw.githubusercontent.com/jiang-zt/FamilyDoc/main/docs/demo-cover.png)](https://github.com/jiang-zt/FamilyDoc/raw/refs/heads/main/docs/demo.mp4)
+
+直接播放/下载链接：
+
+https://github.com/jiang-zt/FamilyDoc/raw/refs/heads/main/docs/demo.mp4
 
 可选内嵌播放器（部分平台渲染可能不稳定）：
 
