@@ -12,6 +12,22 @@ deepseek-springai-family-doctor/
 └── family-doctor/        # 前端静态资源（5500 端口访问）
 ```
 
+## 应用演示
+
+将演示文件放到仓库根目录的 `docs/` 下：
+- `docs/demo-cover.png`（封面图）
+- `docs/demo.mp4`（演示视频，建议 < 100MB）
+
+README 展示方式（GitHub 稳定）：
+
+[![观看演示](docs/demo-cover.png)](docs/demo.mp4)
+
+可选内嵌播放器（部分平台渲染可能不稳定）：
+
+```html
+<video src="docs/demo.mp4" controls width="900"></video>
+```
+
 ## 核心能力
 
 - JWT 登录/注册与鉴权
