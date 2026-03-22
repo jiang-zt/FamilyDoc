@@ -91,7 +91,7 @@
                 if (window.EventSource) {
                     // 建立连接
                     var token = cookieUtils.getToken();
-                    source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userName + '&token=' + token);
+                    source = new EventSource(window.appConfig.backendBaseURL + '/sse/connect?userId=' + userName + '&token=' + token);
                     console.log("连接用户=" + userName);
                     me.currentUserName = userName;
                     
@@ -177,7 +177,7 @@
                 authApi.me().then((result) => {
                     this.currentUserName = result.username;
                     this.initSSE(this.currentUserName);
-                    this.getChatRecords(this.currentUserName);
+                    this.getChatRecords();
                 }).catch((err) => {
                     cookieUtils.removeUserInfo();
                     cookieUtils.removeToken();
@@ -198,7 +198,7 @@
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
                     this.initSSE(this.currentUserName);
-                    this.getChatRecords(this.currentUserName);
+                    this.getChatRecords();
                 }).catch((err) => {
                     this.loginError = '登录失败，请检查用户名或密码';
                 });
@@ -217,7 +217,7 @@
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
                     this.initSSE(this.currentUserName);
-                    this.getChatRecords(this.currentUserName);
+                    this.getChatRecords();
                 }).catch((err) => {
                     this.loginError = '注册失败，用户名可能已存在';
                 });
@@ -228,6 +228,7 @@
                 cookieUtils.removeToken();
                 this.currentUserName = null;
                 this.chatList = [];
+                window.location.href = '/pages/entry.html';
             },
 
             clearChatRecords() {
@@ -239,16 +240,16 @@
                 if (!confirm('确认清空当前用户聊天记录？')) {
                     return;
                 }
-                doctorApi.deleteRecords(currentUserName).then((result) => {
+                doctorApi.deleteRecords().then((result) => {
                     this.chatList = [];
                 }).catch((err) => {
                     alert('清空失败，请稍后重试');
                 });
             },
 
-            getChatRecords(who) {
+            getChatRecords() {
                 var me = this;
-                doctorApi.getRecords(who).then((result) => {
+                doctorApi.getRecords().then((result) => {
                     console.log(result);
                     this.chatList = result;
 
@@ -278,7 +279,6 @@
 
                 // 发送消息到后端
                 var singleChat = {
-                    currentUserName: currentUserName,
                     message: pendingMsg
                 };
 

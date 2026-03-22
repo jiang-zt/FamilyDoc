@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Java / Maven / Gradle
+**/target/
+**/build/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Runtime crash files
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# Env / local config
+.env
+.env.*
+*.local
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.swp
+
+# Frontend common artifacts
+**/node_modules/
+**/dist/
+**/.cache/
+
+# Test artifacts
+**/*.jtl
+**/jmeter/report/
+coverage/

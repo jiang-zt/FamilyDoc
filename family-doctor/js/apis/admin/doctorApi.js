@@ -2,26 +2,33 @@ window.doctorApi = {
 
     doChat: function(bo) {
         return instance({
-            url: '/ollama/ai/v3/doctor/stream',
+            url: '/ollama/chat/stream',
             method: 'post',
             data: bo
         })
     },
 
-    getRecords: function(who) {
+    doChatSync: function(bo) {
         return instance({
-            url: '/ollama/getRecords?who=' + who,
+            url: '/ollama/chat',
+            method: 'post',
+            data: bo
+        })
+    },
+
+    getRecords: function() {
+        return instance({
+            url: '/ollama/records',
             method: 'get',
         })
     },
 
-    deleteRecords: function(who) {
+    deleteRecords: function() {
         return instance({
-            url: '/ollama/deleteRecords?who=' + who,
+            url: '/ollama/records',
             method: 'delete',
         })
     },
 
 }
-
 

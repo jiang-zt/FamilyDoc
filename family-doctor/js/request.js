@@ -1,9 +1,14 @@
 
+const backendBaseURL = `${window.location.protocol}//${window.location.hostname}:8080`;
+window.appConfig = {
+    backendBaseURL: backendBaseURL
+};
+
 // 创建axios实例
 const instance = axios.create({
     // baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
     // baseURL: "http://10.0.0.3:8080", // url = base url + request url
-    baseURL: "http://127.0.0.1:8080",
+    baseURL: backendBaseURL,
     // baseURL: "https://www.itzixi.com/api", // url = base url + request url
     withCredentials: true, // send cookies when cross-domain requests
     timeout: 5000 // request timeout

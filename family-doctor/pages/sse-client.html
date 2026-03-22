@@ -15,6 +15,10 @@
 <script>
 
     let source = null;
+    const fallbackBackendBaseURL = `${window.location.protocol}//${window.location.hostname}:8080`;
+    const backendBaseURL = (window.appConfig && window.appConfig.backendBaseURL)
+        ? window.appConfig.backendBaseURL
+        : fallbackBackendBaseURL;
     //每次刷新动态生成用户id字符串
     let userId = Math.random().toString(36).substr(2, 9); // 生成一个随机字符串作为 userId
     if (window.EventSource) {
@@ -24,7 +28,7 @@
         if (window.cookieUtils && cookieUtils.getToken) {
             token = cookieUtils.getToken();
         }
-        source = new EventSource('http://127.0.0.1:8080/sse/connect?userId=' + userId + '&token=' + token);
+        source = new EventSource(backendBaseURL + '/sse/connect?userId=' + userId + '&token=' + token);
 
         // 建立连接成功，则会触发open事件
         //消息流转回来后，会触发open事件 才是真正建立连接
