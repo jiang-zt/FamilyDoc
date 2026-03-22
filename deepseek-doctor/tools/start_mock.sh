@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-mock-not-used}"
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:-mock-not-used}" 
 export DASHSCOPE_MOCK_ENABLED="${DASHSCOPE_MOCK_ENABLED:-true}"
 export DASHSCOPE_MOCK_RESPONSE="${DASHSCOPE_MOCK_RESPONSE:-这是本地压测Mock回复。}"
 export DASHSCOPE_MOCK_FIRST_TOKEN_DELAY_MS="${DASHSCOPE_MOCK_FIRST_TOKEN_DELAY_MS:-120}"

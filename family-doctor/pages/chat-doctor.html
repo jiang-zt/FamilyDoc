@@ -72,14 +72,30 @@
                 currentUserName: null,
                 chatList: [],
                 loginError: null,
+                sseSource: null,
+                sseReconnectTimer: null,
+                sseReconnectAttempts: 0,
+                sseManualClose: false,
+                sseReconnectBaseDelayMs: 1000,
+                sseReconnectMaxDelayMs: 15000,
+                beforeUnloadHandler: null,
 			}
 		},
 		created() { 
-			var me = this;
+            this.beforeUnloadHandler = () => {
+                this.destroySSEConnection();
+            };
 		},
 		mounted() {
             this.tryAutoLogin();
             this.scrollToBottom();
+            window.addEventListener('beforeunload', this.beforeUnloadHandler);
+        },
+        beforeDestroy() {
+            this.destroySSEConnection();
+            if (this.beforeUnloadHandler) {
+                window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            }
         },
 		watch: {
 		},
@@ -87,84 +103,136 @@
             initSSE(userName) {
                 var me = this;
 
-                let source = null;
                 if (window.EventSource) {
-                    // 建立连接
-                    var token = cookieUtils.getToken();
-                    source = new EventSource(window.appConfig.backendBaseURL + '/sse/connect?userId=' + userName + '&token=' + token);
-                    console.log("连接用户=" + userName);
                     me.currentUserName = userName;
-                    
-                    source.addEventListener('open', function (e) {
-                        console.log("建立连接。。。");
-                    }, false);
-
-                    source.addEventListener('add', function (e) {
-
-                        console.log("add事件...");
-                        console.log(e.data);
-                        var receiveMsg = e.data;
-
-                        var botMsgId = me.botMsgId;
-                        if (botMsgId == null || botMsgId == '') {
-                            botMsgId = me.generateRandomId(12);
-                            me.botMsgId = botMsgId;
-                            console.log("botMsgId = " + botMsgId);
-
-                            // 为空，创建新对象
-                            var newBotContent = {
-                                id: "temp",
-                                content: receiveMsg,
-                                // time: '2023-05-01 12:00:00',
-                                userName: '家庭医生',
-                                chatType: 'bot',
-                                botMsgId: botMsgId,
-                            };
-                            me.chatList.push(newBotContent);
-
-                        } else {
-                            console.log("botMsgId 不为空...");
-                            console.log("botMsgId = " + botMsgId);
-
-                            // 不为空，找到对应的聊天记录流式插入数据
-                            for (var i = 0; i < me.chatList.length; i++) {
-                                var chatItem = me.chatList[i];
-                                if (chatItem.botMsgId == botMsgId) {
-                                    // 找到对应的聊天记录流式插入数据
-                                    chatItem.content += receiveMsg;
-                                }
-                            }
-                        }
-
-                        me.scrollToBottom();
-                    });
-
-                    source.addEventListener('finish', function (e) {
-                        console.log("finish事件...");
-                        me.botMsgId = null;
-                        me.scrollToBottom();
-                    });
-
-                    source.addEventListener('error', function (e) {
-                        console.log("error事件...");
-                        console.log("e.readyState: " + source.readyState);
-
-                        if (e.readyState === EventSource.CLOSED) {
-                            console.log('connection is closed');
-                        } else {
-                            console.log("Error occured", event);
-                        }
-                        // close方法用于关闭连接
-                        source.close();
-                    });
-
-                    source.addEventListener("customEvent", function(e) {
-                        console.log(e.lastEventId);
-                        console.log(e.data);
-                    }, false);
+                    me.sseManualClose = false;
+                    me.sseReconnectAttempts = 0;
+                    me.clearSSEReconnectTimer();
+                    me.connectSSE(userName);
                 } else {
                     console.log("浏览器不支持SSE");
                 }
+            },
+            connectSSE(userName) {
+                var me = this;
+                var token = cookieUtils.getToken();
+                if (!token || !userName) {
+                    return;
+                }
+                me.closeSSEConnection(false);
+
+                var sseUrl = window.appConfig.backendBaseURL + '/sse/connect?userId=' + userName + '&token=' + token;
+                var source = new EventSource(sseUrl);
+                me.sseSource = source;
+                console.log("连接用户=" + userName);
+                
+                source.addEventListener('open', function () {
+                    console.log("建立连接。。。");
+                    me.sseReconnectAttempts = 0;
+                }, false);
+
+                source.addEventListener('add', function (e) {
+
+                    console.log("add事件...");
+                    console.log(e.data);
+                    var receiveMsg = e.data;
+
+                    var botMsgId = me.botMsgId;
+                    if (botMsgId == null || botMsgId == '') {
+                        botMsgId = me.generateRandomId(12);
+                        me.botMsgId = botMsgId;
+                        console.log("botMsgId = " + botMsgId);
+
+                        // 为空，创建新对象
+                        var newBotContent = {
+                            id: "temp",
+                            content: receiveMsg,
+                            // time: '2023-05-01 12:00:00',
+                            userName: '家庭医生',
+                            chatType: 'bot',
+                            botMsgId: botMsgId,
+                        };
+                        me.chatList.push(newBotContent);
+
+                    } else {
+                        console.log("botMsgId 不为空...");
+                        console.log("botMsgId = " + botMsgId);
+
+                        // 不为空，找到对应的聊天记录流式插入数据
+                        for (var i = 0; i < me.chatList.length; i++) {
+                            var chatItem = me.chatList[i];
+                            if (chatItem.botMsgId == botMsgId) {
+                                // 找到对应的聊天记录流式插入数据
+                                chatItem.content += receiveMsg;
+                            }
+                        }
+                    }
+
+                    me.scrollToBottom();
+                });
+
+                source.addEventListener('finish', function () {
+                    console.log("finish事件...");
+                    me.botMsgId = null;
+                    me.scrollToBottom();
+                });
+
+                source.addEventListener('error', function () {
+                    if (me.sseSource !== source) {
+                        return;
+                    }
+                    console.log("error事件，准备重连...");
+                    me.closeSSEConnection(false);
+                    me.scheduleSSEReconnect(userName);
+                });
+
+                source.addEventListener("customEvent", function(e) {
+                    console.log(e.lastEventId);
+                    console.log(e.data);
+                }, false);
+            },
+            scheduleSSEReconnect(userName) {
+                if (this.sseManualClose) {
+                    return;
+                }
+                var token = cookieUtils.getToken();
+                if (!token || !this.currentUserName || this.currentUserName !== userName) {
+                    return;
+                }
+                this.clearSSEReconnectTimer();
+                var delay = Math.min(
+                    this.sseReconnectBaseDelayMs * Math.pow(2, this.sseReconnectAttempts),
+                    this.sseReconnectMaxDelayMs
+                );
+                this.sseReconnectAttempts += 1;
+                console.log("SSE将在 " + delay + "ms 后重连，第 " + this.sseReconnectAttempts + " 次尝试");
+                this.sseReconnectTimer = setTimeout(() => {
+                    if (this.sseManualClose) {
+                        return;
+                    }
+                    this.connectSSE(userName);
+                }, delay);
+            },
+            clearSSEReconnectTimer() {
+                if (this.sseReconnectTimer) {
+                    clearTimeout(this.sseReconnectTimer);
+                    this.sseReconnectTimer = null;
+                }
+            },
+            closeSSEConnection(manualClose) {
+                if (manualClose) {
+                    this.sseManualClose = true;
+                }
+                this.clearSSEReconnectTimer();
+                if (this.sseSource) {
+                    try {
+                        this.sseSource.close();
+                    } catch (e) {}
+                    this.sseSource = null;
+                }
+            },
+            destroySSEConnection() {
+                this.closeSSEConnection(true);
             },
 
             tryAutoLogin() {
@@ -179,6 +247,7 @@
                     this.initSSE(this.currentUserName);
                     this.getChatRecords();
                 }).catch((err) => {
+                    this.destroySSEConnection();
                     cookieUtils.removeUserInfo();
                     cookieUtils.removeToken();
                 });
@@ -194,6 +263,7 @@
                 }
 
                 authApi.login({username: username.trim(), password: password.trim()}).then((result) => {
+                    this.destroySSEConnection();
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
@@ -213,6 +283,7 @@
                     return;
                 }
                 authApi.register({username: username.trim(), password: password.trim()}).then((result) => {
+                    this.destroySSEConnection();
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
@@ -224,6 +295,7 @@
             },
 
             doLogout() {
+                this.destroySSEConnection();
                 cookieUtils.removeUserInfo();
                 cookieUtils.removeToken();
                 this.currentUserName = null;

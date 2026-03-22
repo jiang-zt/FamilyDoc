@@ -2,8 +2,8 @@
 set -euo pipefail
 
 BASE_URL="${1:-http://127.0.0.1:8080}"
-USERNAME="${2:-llm_tester}"
-PASSWORD="${3:-12345678}"
+USERNAME="${2:-1}"
+PASSWORD="${3:-123}"
 MESSAGE="${4:-你好，请用一句话介绍你自己。}"
 
 json_escape() {
