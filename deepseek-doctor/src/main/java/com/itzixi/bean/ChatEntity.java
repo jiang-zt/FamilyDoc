@@ -16,6 +16,5 @@ import lombok.ToString;
 @AllArgsConstructor//全参构造函数
 @NoArgsConstructor//无参构造函数
 public class ChatEntity {
-    private String currentUserName;
     private String message;
 }

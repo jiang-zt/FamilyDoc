@@ -135,6 +135,7 @@ CREATE TABLE chat_metric (
   prompt_version VARCHAR(50),
   first_token_ms BIGINT,
   total_ms BIGINT,
+  avg_token_interval_ms DECIMAL(10,2),
   output_chars INT,
   output_tokens INT,
   accuracy_score INT,

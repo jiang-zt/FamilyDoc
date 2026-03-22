@@ -16,6 +16,7 @@ public class ChatMetric {
     private String promptVersion;
     private Long firstTokenMs;
     private Long totalMs;
+    private Double avgTokenIntervalMs;
     private Integer outputChars;
     private Integer outputTokens;
     private Integer accuracyScore;

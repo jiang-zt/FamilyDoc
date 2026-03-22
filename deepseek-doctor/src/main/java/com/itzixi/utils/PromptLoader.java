@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class PromptLoader {
 
-    private static final String PROMPT_FILE = "my_doctor_0_1";
+    private static final String PROMPT_FILE = "my_doctor";
     private String cachedSystemPrompt;
     private String cachedVersion;
 

@@ -9,8 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan("com.itzixi.mapper")
 public class Application {
 
-    //    http://localhost:8080/hello/world
-    //    http://127.0.0.1:8080/hello/world
+    //    http://localhost:8080/
+    //    http://127.0.0.1:8080/
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

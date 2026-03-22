@@ -12,7 +12,7 @@ spring:
 # MyBatisPlus 的配置
 mybatis-plus:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
   global-config:
     db-config:
       id-type: assign_id
@@ -27,7 +27,13 @@ auth:
     username: admin
 
 dashscope:
-  base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com/api/v1}
   api-key: ${DASHSCOPE_API_KEY:}
-  model: qwen-plus
-  temperature: 0.2
+  model: ${DASHSCOPE_MODEL:qwen3-235b-a22b}
+  temperature: ${DASHSCOPE_TEMPERATURE:0.2}
+  mock:
+    enabled: ${DASHSCOPE_MOCK_ENABLED:false}
+    response: ${DASHSCOPE_MOCK_RESPONSE:这是测试模式下的固定回复。}
+    first-token-delay-ms: ${DASHSCOPE_MOCK_FIRST_TOKEN_DELAY_MS:80}
+    chunk-delay-ms: ${DASHSCOPE_MOCK_CHUNK_DELAY_MS:40}
+    chunk-size: ${DASHSCOPE_MOCK_CHUNK_SIZE:6}

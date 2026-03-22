@@ -1,5 +1,6 @@
 server:
   port: 8080      # 当前项目所在服务的端口号 访问的端口号
+  address: 0.0.0.0
   #http://localhost:8080/hello/world
 
 # 配置日志级别为info
