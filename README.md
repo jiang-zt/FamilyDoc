@@ -26,11 +26,6 @@ README 展示方式（GitHub 稳定）：
 
 https://github.com/jiang-zt/FamilyDoc/raw/refs/heads/main/docs/demo.mp4
 
-可选内嵌播放器（部分平台渲染可能不稳定）：
-
-```html
-<video src="docs/demo.mp4" controls width="900"></video>
-```
 
 ## 核心能力
 
