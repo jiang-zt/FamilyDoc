@@ -5,7 +5,6 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 
 /**
  * @ClassName ServiceLogAspect
@@ -32,34 +31,21 @@ public class ServiceLogAspect {
      */
     @Around("execution(* com.itzixi.service.impl..*.*(..))")
     public Object recordTimeLog(ProceedingJoinPoint joinPoint) throws Throwable {
-
-        StopWatch stopWatch = new StopWatch();
-//        long begin = System.currentTimeMillis();
-        stopWatch.start();
-
-        Object proceed = joinPoint.proceed();
-        
-        String point = joinPoint.getTarget().getClass().getName()
-                        + "." +
-                       joinPoint.getSignature().getName();
-
-//        long end = System.currentTimeMillis();
-
-        stopWatch.stop();
-        // 获得时间差
-//        long takeTime = end - begin;
-
-        // 打印任务的耗时统计（已关闭，避免刷屏）
-        // log.info(stopWatch.prettyPrint());
-        // log.info(stopWatch.shortSummary());
-        //
-        // 任务信息总览（已关闭）
-        // log.info("所有任务的总耗时：" + stopWatch.getTotalTimeMillis());
-        // log.info("任务总数：" + stopWatch.getTaskCount());
-
-//        log.info("直接方法：{} 执行的时间为 {} 毫秒", point, takeTime);
-
-        return proceed;
+        long startNs = System.nanoTime();
+        String className = joinPoint.getTarget().getClass().getSimpleName();
+        String methodName = joinPoint.getSignature().getName();
+        try {
+            Object result = joinPoint.proceed();
+            long costMs = (System.nanoTime() - startNs) / 1_000_000;
+            log.info("event=service_call status=success class={} method={} costMs={}",
+                    className, methodName, costMs);
+            return result;
+        } catch (Throwable throwable) {
+            long costMs = (System.nanoTime() - startNs) / 1_000_000;
+            log.error("event=service_call status=error class={} method={} costMs={} error={}",
+                    className, methodName, costMs, throwable.getMessage(), throwable);
+            throw throwable;
+        }
     }
 
 }
