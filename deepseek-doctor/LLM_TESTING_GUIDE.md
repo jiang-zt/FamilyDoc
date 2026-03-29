@@ -19,7 +19,7 @@ chmod +x tools/start_mock.sh tools/llm_smoke.sh tools/start_with_proxy.sh
 ## 2. 先跑一遍端到端冒烟（含 SSE）
 
 ```bash
-./tools/llm_smoke.sh http://127.0.0.1:8080 jiangzhuotong 12345678 "请给我三条睡眠建议"
+./tools/llm_smoke.sh http://127.0.0.1:8080 jiangzhuotong 123456 "请给我三条睡眠建议"
 ```
 
 这个脚本会自动做 5 件事：

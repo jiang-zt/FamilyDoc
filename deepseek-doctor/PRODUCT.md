@@ -2,7 +2,7 @@
 
 **项目名称：** deepseek-springai-family-doctor  
 **版本：** 1.0-SNAPSHOT  
-**作者：** 风间影月  
+**作者：** 
 **创建日期：** 2025 年 6 月  
 
 ---

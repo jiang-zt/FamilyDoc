@@ -46,3 +46,4 @@ temp/
 **/*.jtl
 **/jmeter/report/
 coverage/
+/deepseek-doctor/LLM_TESTING_GUIDE.md
