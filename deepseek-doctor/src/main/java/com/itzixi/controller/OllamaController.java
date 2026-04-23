@@ -39,7 +39,7 @@ public class OllamaController {
         }
         String message = chatEntity.getMessage();
         if (message == null || message.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息不能为空");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息不能为空");//400
         }
         return ollamaService.chat(message.trim());
     }

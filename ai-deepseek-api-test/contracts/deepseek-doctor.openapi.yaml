@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: DeepSeek Doctor API
+  version: 0.1.0
+  description: Manual contract used by the standalone API test project.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentialRequest'
+      responses:
+        '200':
+          description: User registered and JWT issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Username or password is blank.
+        '409':
+          description: Username already exists.
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with username and password.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentialRequest'
+      responses:
+        '200':
+          description: Login succeeded and JWT issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Username or password is blank.
+        '401':
+          description: Username or password is invalid.
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the current authenticated user.
+      responses:
+        '200':
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserView'
+        '401':
+          description: Missing or invalid token.
+  /auth/users:
+    get:
+      tags: [Admin]
+      summary: List all users. Admin only.
+      responses:
+        '200':
+          description: User list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthUserView'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Non-admin user.
+  /auth/users/{id}:
+    delete:
+      tags: [Admin]
+      summary: Delete a user. Admin only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted row count.
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Non-admin user.
+  /auth/chat-users:
+    get:
+      tags: [Admin]
+      summary: List users who have chat records. Admin only.
+      responses:
+        '200':
+          description: Chat user names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Non-admin user.
+  /ollama/chat:
+    post:
+      tags: [Chat]
+      summary: Send a synchronous chat message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: AI response text.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Message is blank.
+        '401':
+          description: Missing or invalid token.
+  /ollama/chat/stream:
+    post:
+      tags: [Chat]
+      summary: Send a streaming chat message through SSE side channel.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Accepted by server.
+        '400':
+          description: Message is blank.
+        '401':
+          description: Missing or invalid token.
+  /ollama/records:
+    get:
+      tags: [Chat]
+      summary: List current user's chat records.
+      responses:
+        '200':
+          description: Chat records.
+        '401':
+          description: Missing or invalid token.
+    delete:
+      tags: [Chat]
+      summary: Delete current user's chat records.
+      responses:
+        '200':
+          description: Deleted row count.
+        '401':
+          description: Missing or invalid token.
+  /sse/connect:
+    get:
+      tags: [SSE]
+      summary: Connect to SSE stream.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Token user does not match userId.
+  /sse/getOnlineCounts:
+    get:
+      tags: [SSE]
+      summary: Get online SSE connection count.
+      security: []
+      responses:
+        '200':
+          description: Online count.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthCredentialRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: test_user
+        password:
+          type: string
+          minLength: 1
+          format: password
+          example: Pwd123456
+    AuthResponse:
+      type: object
+      required: [token, user, expiresAt]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/AuthUserView'
+        expiresAt:
+          type: integer
+          format: int64
+    AuthUserView:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+    ChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          example: 我有点头疼，应该怎么办？

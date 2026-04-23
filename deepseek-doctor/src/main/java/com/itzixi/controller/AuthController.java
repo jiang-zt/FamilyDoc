@@ -42,12 +42,12 @@ public class AuthController {
     public AuthResponse register(@RequestBody AuthRegisterRequest request) {
         if (request.getUsername() == null || request.getUsername().trim().isEmpty()
                 || request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名或密码不能为空");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名或密码不能为空");//400
         }
 
         AppUser user = appUserService.register(request.getUsername().trim(), request.getPassword().trim());
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "用户名已存在");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "用户名已存在");//409
         }
         return buildAuthResponse(user);
     }
@@ -60,7 +60,7 @@ public class AuthController {
         }
         AppUser user = appUserService.authenticate(request.getUsername().trim(), request.getPassword().trim());
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");//401
         }
         return buildAuthResponse(user);
     }
@@ -69,7 +69,7 @@ public class AuthController {
     public AuthUserView me(HttpServletRequest request) {
         String username = authHelper.requireUsername(request);
         if (username == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");//401
         }
         AppUser user = appUserService.findByUsername(username);
         if (user == null) {
@@ -85,7 +85,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
         if (!username.equals(adminUsername)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");//403
         }
         return appUserService.listAll().stream()
                 .map(this::toUserView)

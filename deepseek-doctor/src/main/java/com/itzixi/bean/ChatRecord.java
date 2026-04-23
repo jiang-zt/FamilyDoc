@@ -5,12 +5,6 @@ import lombok.ToString;
 
 import java.time.LocalDateTime;
 
-/**
- * @ClassName ChatRecord 数据库表所对应的持久层对象
- * @Author 风间影月
- * @Version 1.0
- * @Description ChatRecord
- **/
 @Data
 @ToString
 public class ChatRecord {
