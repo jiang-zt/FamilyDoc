@@ -19,42 +19,36 @@
 - 前端：Vue2、Axios、静态页面
 - 测试：JMeter、Shell 脚本、独立 API 测试工程 `ai-deepseek-api-test`
 
+## 测试模块
+
+- `deepseek-doctor/tools/llm_smoke.sh`：端到端冒烟测试，覆盖登录、同步聊天、SSE 建连和流式触发
+- `deepseek-doctor/tools/jmeter/llm_chat_test.jmx`：JMeter 并发压测脚本，主要用于非流式接口
+- `ai-deepseek-api-test`：独立接口测试工程，用于认证、聊天、SSE 等接口回归验证
+
 ## 数据库结构
 
 核心表如下：
 
 ### `app_user`
 
-- `id`
 - `username`
 - `password_hash`
-- `created_at`
-- `updated_at`
 
 ### `chat_record`
 
-- `id`
 - `content`
 - `chat_type`
 - `chat_time`
-- `family_member`
 
 ### `chat_metric`
 
-- `id`
-- `user_name`
-- `question`
 - `model`
-- `prompt_version`
 - `first_token_ms`
 - `total_ms`
 - `avg_token_interval_ms`
-- `output_chars`
 - `output_tokens`
-- `accuracy_score`
-- `created_at`
 
-其中 `chat_metric` 用于记录会话级性能指标，便于排查首 token 延迟、总耗时和输出稳定性。
+其中 `chat_metric` 用于记录模型延迟时间和输出指标，例如首 token 延迟、总耗时和平均输出间隔。
 
 ## 启动方式
 
