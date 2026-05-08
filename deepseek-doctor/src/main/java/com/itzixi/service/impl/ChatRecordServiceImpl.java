@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * @ClassName ChatRecordServiceImpl
- * @Author 风间影月
+ * @Author
  * @Version 1.0
  * @Description ChatRecordServiceImpl
  **/

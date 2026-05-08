@@ -19,5 +19,13 @@ window.adminApi = {
             url: '/auth/chat-users',
             method: 'get',
         })
+    },
+
+    listChatMetrics: function(params) {
+        return instance({
+            url: '/auth/chat-metrics',
+            method: 'get',
+            params: params
+        })
     }
 }

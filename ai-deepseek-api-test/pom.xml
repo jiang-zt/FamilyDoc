@@ -18,13 +18,24 @@
         <assertj.version>3.27.3</assertj.version>
         <snakeyaml.version>2.3</snakeyaml.version>
         <jackson.version>2.18.2</jackson.version>
+        <mysql.version>8.0.33</mysql.version>
         <api.baseUrl>http://localhost:8080</api.baseUrl>
         <api.tests.enabled>false</api.tests.enabled>
         <api.chat.enabled>false</api.chat.enabled>
         <api.eval.enabled>false</api.eval.enabled>
+        <api.cleanup.enabled>true</api.cleanup.enabled>
+        <api.cleanup.jdbcUrl>jdbc:mysql://127.0.0.1:3306/deepseek_doctor?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true&amp;useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC</api.cleanup.jdbcUrl>
+        <api.cleanup.username>root</api.cleanup.username>
+        <api.cleanup.password>12345678</api.cleanup.password>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.itzixi</groupId>
+            <artifactId>medical-answer-scoring</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -55,6 +66,12 @@
             <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>${mysql.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -69,6 +86,10 @@
                         <api.tests.enabled>${api.tests.enabled}</api.tests.enabled>
                         <api.chat.enabled>${api.chat.enabled}</api.chat.enabled>
                         <api.eval.enabled>${api.eval.enabled}</api.eval.enabled>
+                        <api.cleanup.enabled>${api.cleanup.enabled}</api.cleanup.enabled>
+                        <api.cleanup.jdbcUrl>${api.cleanup.jdbcUrl}</api.cleanup.jdbcUrl>
+                        <api.cleanup.username>${api.cleanup.username}</api.cleanup.username>
+                        <api.cleanup.password>${api.cleanup.password}</api.cleanup.password>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

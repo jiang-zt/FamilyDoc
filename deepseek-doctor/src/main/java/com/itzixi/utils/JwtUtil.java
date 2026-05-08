@@ -18,12 +18,12 @@ public class JwtUtil {
     private String secret;
 
     @Value("${auth.jwt.expire-minutes}")
-    private long expireMinutes;
+    private long expireMinutes;//120
 
     public String createToken(String userId, String username) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         Instant now = Instant.now();
-        Instant exp = now.plusSeconds(expireMinutes * 60);
+        Instant exp = now.plusSeconds(expireMinutes * 60);//
         return JWT.create()
                 .withSubject(username)
                 .withClaim("uid", userId)

@@ -38,7 +38,9 @@ public final class AuthSupport {
         assertThat(returnedUsername).isEqualTo(username);
         assertThat(userId).isNotBlank();
 
-        return new AuthSession(token, returnedUsername, userId);
+        AuthSession session = new AuthSession(token, returnedUsername, userId);
+        TestDataCleaner.remember(session);
+        return session;
     }
 
     public static String uniqueUsername() {

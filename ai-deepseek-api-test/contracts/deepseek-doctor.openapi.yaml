@@ -116,7 +116,38 @@ paths:
           description: Missing or invalid token.
         '403':
           description: Non-admin user.
-  /ollama/chat:
+  /auth/chat-metrics:
+    get:
+      tags: [Admin]
+      summary: List recent chat metrics and scoring details. Admin only.
+      parameters:
+        - name: userName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Recent chat metrics.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMetric'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Non-admin user.
+  /chat:
     post:
       tags: [Chat]
       summary: Send a synchronous chat message.
@@ -137,7 +168,7 @@ paths:
           description: Message is blank.
         '401':
           description: Missing or invalid token.
-  /ollama/chat/stream:
+  /chat/stream:
     post:
       tags: [Chat]
       summary: Send a streaming chat message through SSE side channel.
@@ -154,7 +185,7 @@ paths:
           description: Message is blank.
         '401':
           description: Missing or invalid token.
-  /ollama/records:
+  /chat/records:
     get:
       tags: [Chat]
       summary: List current user's chat records.
@@ -247,3 +278,50 @@ components:
           type: string
           minLength: 1
           example: 我有点头疼，应该怎么办？
+    ChatMetric:
+      type: object
+      properties:
+        id:
+          type: string
+        userName:
+          type: string
+        question:
+          type: string
+        model:
+          type: string
+        promptVersion:
+          type: string
+        firstTokenMs:
+          type: integer
+          format: int64
+        totalMs:
+          type: integer
+          format: int64
+        avgTokenIntervalMs:
+          type: number
+          format: double
+        outputChars:
+          type: integer
+        outputTokens:
+          type: integer
+        accuracyScore:
+          type: integer
+        matchedRuleId:
+          type: string
+        safetyScore:
+          type: integer
+        factualScore:
+          type: integer
+        coverageScore:
+          type: integer
+        semanticScore:
+          type: integer
+        expressionScore:
+          type: integer
+        scorePass:
+          type: boolean
+        scoreIssues:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

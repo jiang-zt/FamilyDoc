@@ -72,6 +72,67 @@
                 </table>
             </div>
         </section>
+
+        <section class="admin-section score-metrics">
+            <div class="section-header">
+                <h2>评分记录</h2>
+                <div class="metric-filters">
+                    <input class="filter-input" v-model.trim="metricUserName" placeholder="按用户名筛选"/>
+                    <select class="filter-select" v-model.number="metricLimit">
+                        <option :value="10">最近10条</option>
+                        <option :value="20">最近20条</option>
+                        <option :value="50">最近50条</option>
+                    </select>
+                    <button class="btn ghost" @click="loadChatMetrics()">查询</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>用户名</th>
+                            <th>问题</th>
+                            <th>总分</th>
+                            <th>规则</th>
+                            <th>评分细项</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="metric in chatMetrics" :key="metric.id">
+                            <td>{{formatTime(metric.createdAt)}}</td>
+                            <td>{{metric.userName}}</td>
+                            <td class="metric-question">{{metric.question}}</td>
+                            <td>
+                                <span class="score-badge" :class="metric.scorePass ? 'pass' : 'fail'">
+                                    {{metric.accuracyScore == null ? '-' : metric.accuracyScore}}
+                                </span>
+                            </td>
+                            <td>{{metric.matchedRuleId || '-'}}</td>
+                            <td class="metric-detail">
+                                <details>
+                                    <summary>{{metric.scorePass ? '通过' : '未通过'}} / 查看细项</summary>
+                                    <div class="score-breakdown">
+                                        <span>安全 {{metric.safetyScore == null ? '-' : metric.safetyScore}}</span>
+                                        <span>事实 {{metric.factualScore == null ? '-' : metric.factualScore}}</span>
+                                        <span>覆盖 {{metric.coverageScore == null ? '-' : metric.coverageScore}}</span>
+                                        <span>语义 {{metric.semanticScore == null ? '-' : metric.semanticScore}}</span>
+                                        <span>表达 {{metric.expressionScore == null ? '-' : metric.expressionScore}}</span>
+                                    </div>
+                                    <div class="score-issues" v-if="metric.scoreIssues">
+                                        {{metric.scoreIssues}}
+                                    </div>
+                                </details>
+                            </td>
+                        </tr>
+                        <tr v-if="chatMetrics.length === 0">
+                            <td colspan="6" class="empty">暂无评分记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="error" v-if="metricErrorMsg">{{metricErrorMsg}}</div>
+        </section>
     </div>
 </body>
 
@@ -90,12 +151,17 @@
             return {
                 users: [],
                 chatUsers: [],
+                chatMetrics: [],
                 errorMsg: null,
+                metricErrorMsg: null,
+                metricUserName: '',
+                metricLimit: 20,
             }
         },
         mounted() {
             this.loadUsers();
             this.loadChatUsers();
+            this.loadChatMetrics();
         },
         methods: {
             loadUsers() {
@@ -113,6 +179,17 @@
                     // ignore to keep admin list usable
                 });
             },
+            loadChatMetrics() {
+                this.metricErrorMsg = null;
+                adminApi.listChatMetrics({
+                    userName: this.metricUserName || undefined,
+                    limit: this.metricLimit
+                }).then((result) => {
+                    this.chatMetrics = result || [];
+                }).catch((err) => {
+                    this.metricErrorMsg = '评分记录加载失败';
+                });
+            },
             removeUser(user) {
                 if (!confirm('确认删除用户 ' + user.username + ' ?')) {
                     return;
@@ -127,6 +204,12 @@
                 cookieUtils.removeUserInfo();
                 cookieUtils.removeToken();
                 window.location.href = '/pages/entry.html';
+            },
+            formatTime(value) {
+                if (!value) {
+                    return '-';
+                }
+                return String(value).replace('T', ' ');
             }
         }
     });

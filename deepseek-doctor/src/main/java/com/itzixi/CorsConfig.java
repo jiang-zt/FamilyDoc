@@ -16,7 +16,7 @@ public class CorsConfig implements WebMvcConfigurer {
     //添加跨域的映射
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")//添加所有路径 全部开放例如/connect、/ollama...
+        registry.addMapping("/**")//添加所有路径 全部开放，例如 /sse/connect、/chat...
                 .allowedOriginPatterns("*")
                 .allowedMethods("*")
                 .allowedHeaders("*")

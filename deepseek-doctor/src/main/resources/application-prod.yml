@@ -22,12 +22,6 @@ spring:
       idle-timeout: 600000                    # 连接超时的最大时长（毫秒），超时则会被释放（retired）
       max-lifetime: 18000000                  # 连接池的最大生命时长（毫秒），超时则会被释放（retired）
       connection-test-query: SELECT 1
-  ai:
-    ollama:
-      base-url: http://127.0.0.1:11434
-      chat:
-        model:
-
 #项目部署打包：数据库密码配置 大模型名称配置 域名网段配置
 website:
   domain: http://134.175.104.219

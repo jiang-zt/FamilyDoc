@@ -37,9 +37,9 @@ if [[ -z "${TOKEN}" ]]; then
   exit 1
 fi
 
-echo "[2/5] 同步接口 /ollama/chat 冒烟..."
+echo "[2/5] 同步接口 /chat 冒烟..."
 CHAT_BODY=$(printf '{"message":"%s"}' "$(json_escape "${MESSAGE}")")
-CHAT_RESP="$(post_json "${BASE_URL}/ollama/chat" "${CHAT_BODY}" "${TOKEN}")"
+CHAT_RESP="$(post_json "${BASE_URL}/chat" "${CHAT_BODY}" "${TOKEN}")"
 echo "同步返回：${CHAT_RESP}"
 
 echo "[3/5] 建立 SSE 连接..."
@@ -56,8 +56,8 @@ curl -sS -N "${BASE_URL}/sse/connect?userId=${USERNAME}&token=${TOKEN}" > "${SSE
 SSE_PID=$!
 sleep 1
 
-echo "[4/5] 触发流式接口 /ollama/chat/stream ..."
-post_json "${BASE_URL}/ollama/chat/stream" "${CHAT_BODY}" "${TOKEN}" >/dev/null
+echo "[4/5] 触发流式接口 /chat/stream ..."
+post_json "${BASE_URL}/chat/stream" "${CHAT_BODY}" "${TOKEN}" >/dev/null
 sleep 3
 
 echo "[5/5] 最近 SSE 事件："

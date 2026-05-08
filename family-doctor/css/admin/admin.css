@@ -122,6 +122,75 @@ th {
     margin-top: 10px;
 }
 
+.metric-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-input,
+.filter-select {
+    border: 1px solid var(--stroke);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--ink);
+}
+
+.metric-question {
+    min-width: 260px;
+    color: var(--ink);
+}
+
+.metric-detail details {
+    min-width: 260px;
+}
+
+.metric-detail summary {
+    cursor: pointer;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.score-badge {
+    display: inline-flex;
+    min-width: 54px;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.score-badge.pass {
+    background: linear-gradient(120deg, #16a34a 0%, #34d399 100%);
+}
+
+.score-badge.fail {
+    background: linear-gradient(120deg, #dc2626 0%, #fb7185 100%);
+}
+
+.score-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.score-breakdown span {
+    background: rgba(15, 91, 255, 0.08);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.score-issues {
+    margin-top: 10px;
+    color: #8a2d14;
+    line-height: 1.6;
+}
+
 .error {
     margin-top: 12px;
     color: #b42318;

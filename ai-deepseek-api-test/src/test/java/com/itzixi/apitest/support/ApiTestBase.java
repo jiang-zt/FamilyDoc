@@ -1,6 +1,7 @@
 package com.itzixi.apitest.support;
 
 import io.restassured.RestAssured;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -15,5 +16,10 @@ public abstract class ApiTestBase {
         );
         RestAssured.baseURI = TestConfig.baseUrl();
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    }
+
+    @AfterEach
+    void cleanupApiTestUsers() {
+        TestDataCleaner.cleanupRegisteredUsers();
     }
 }

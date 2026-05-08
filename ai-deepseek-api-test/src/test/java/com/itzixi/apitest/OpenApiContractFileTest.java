@@ -32,8 +32,9 @@ class OpenApiContractFileTest {
                         "/auth/register",
                         "/auth/login",
                         "/auth/me",
-                        "/ollama/chat",
-                        "/ollama/records",
+                        "/auth/chat-metrics",
+                        "/chat",
+                        "/chat/records",
                         "/sse/connect",
                         "/sse/getOnlineCounts"
                 );

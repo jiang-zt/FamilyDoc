@@ -64,8 +64,14 @@ public class SSEServer {
         sseEmitter.onTimeout(timeoutCallback(userId));//超时
 
         sseClients.put(userId, sseEmitter);
-        log.info("当前创建新的SSE连接，用户ID为: {}", userId);
         onlineCounts.getAndIncrement();
+        log.info("【SSE连接建立】 user={} onlineCount={}", userId, onlineCounts.get());
+        try {
+            sseEmitter.send(SseEmitter.event().comment("connected"));
+        } catch (IOException e) {
+            log.error("【SSE连接初始化异常】 user={} error={}", userId, e.getMessage(), e);
+            removeConnection(userId);
+        }
         return sseEmitter;
     }
 
@@ -123,7 +129,7 @@ public class SSEServer {
                     .data(message);
             sseEmitter.send(msg);
         } catch (IOException e) {
-            log.error("用户[{}]的消息推送发生异常！", userId);
+            log.error("【SSE推送异常】 user={} eventType={} error={}", userId, msgType.type, e.getMessage(), e);
             removeConnection(userId);
         }
 
@@ -144,9 +150,8 @@ public class SSEServer {
             // complete 表示执行完毕，断开连接
             sseEmitter.complete();
             removeConnection(userId);
-            log.info("连接关闭成功，被关闭的用户为 {}", userId);
         } else{
-            log.warn("当前连接无需关闭，请不要重复操作");
+            log.warn("【SSE关闭跳过】 user={} reason=connection_not_found", userId);
         }
 
     }
@@ -159,7 +164,7 @@ public class SSEServer {
      */
     private static Runnable completionCallback(String userId) {
         return () -> {
-            log.info("SSE连接完成并结束，用户ID为: {}", userId);
+            log.info("【SSE连接完成】 user={}", userId);
             removeConnection(userId);
         };
     }
@@ -172,7 +177,7 @@ public class SSEServer {
      */
     private static Runnable timeoutCallback(String userId) {
         return () -> {
-            log.info("SSE连接超时，用户ID为: {}", userId);
+            log.warn("【SSE连接超时】 user={}", userId);
             removeConnection(userId);
         };
     }
@@ -185,7 +190,7 @@ public class SSEServer {
      */
     private static Consumer<Throwable> errorCallback(String userId) {
         return Throwable -> {
-            log.info("SSE连接发生错误，用户ID为: {}", userId);
+            log.error("【SSE连接错误】 user={} error={}", userId, Throwable.getMessage(), Throwable);
             removeConnection(userId);
         };
     }
@@ -196,10 +201,13 @@ public class SSEServer {
      * @param userId
      */
     public static void removeConnection(String userId) {
-        sseClients.remove(userId);
-        log.info("SSE连接被移除，移除的用户ID为: {}", userId);
-
-        onlineCounts.getAndDecrement();
+        SseEmitter removed = sseClients.remove(userId);
+        if (removed == null) {
+            log.info("【SSE连接移除跳过】 user={} reason=connection_not_found onlineCount={}", userId, onlineCounts.get());
+            return;
+        }
+        int onlineCount = onlineCounts.updateAndGet(current -> Math.max(0, current - 1));
+        log.info("【SSE连接移除】 user={} onlineCount={}", userId, onlineCount);
     }
 
     /**
