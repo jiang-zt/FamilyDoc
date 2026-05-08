@@ -5,10 +5,10 @@
 ## 项目功能
 
 - 用户注册、登录与 JWT 鉴权
-- 同步聊天接口：`POST /ollama/chat`
-- 流式聊天接口：`POST /ollama/chat/stream`
+- 同步聊天接口：`POST /chat`
+- 流式聊天接口：`POST /chat/stream`
 - SSE 长连接通道：`GET /sse/connect`
-- 聊天记录查询与清空：`GET /ollama/records`、`DELETE /ollama/records`
+- 聊天记录查询与清空：`GET /chat/records`、`DELETE /chat/records`
 - 会话指标落库：`firstTokenMs`、`totalMs`、`avgTokenIntervalMs`、`outputTokens`
 - Mock 模式联调与压测支持
 
@@ -55,13 +55,24 @@
 ### 1. 准备数据库
 
 1. 创建数据库：`deepseek_doctor`
-2. 执行表结构，参考 `deepseek-doctor/PRODUCT.md`
-3. 执行迁移脚本：
+2. 新库执行初始化脚本：
+
+```text
+deepseek-doctor/src/main/resources/sql/20260321_initial_schema.sql
+```
+
+3. 旧库按需执行迁移脚本，脚本位于 `deepseek-doctor/src/main/resources/sql/`
 
 ```sql
 ALTER TABLE chat_metric
 ADD COLUMN avg_token_interval_ms DECIMAL(10,2) NULL COMMENT '相邻输出 token（或 chunk）平均到达间隔（毫秒）'
 AFTER total_ms;
+```
+
+当前评分明细字段迁移脚本：
+
+```text
+deepseek-doctor/src/main/resources/sql/20260429_add_score_detail_columns.sql
 ```
 
 ### 2. 配置环境变量

@@ -46,4 +46,10 @@ temp/
 **/*.jtl
 **/jmeter/report/
 coverage/
+
+# Project-private explanatory docs and generated notes
+/docs/
 /deepseek-doctor/LLM_TESTING_GUIDE.md
+/deepseek-doctor/PRODUCT.md
+/deepseek-doctor/PRODUCT.html
+/ai-deepseek-api-test/prompts/*.md

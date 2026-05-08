@@ -18,9 +18,11 @@ public class ModelStartupLogger {
     @Value("${dashscope.model}")
     private String model;
 
+    @Value("${dashscope.mock.enabled:false}")
+    private boolean mockEnabled;
+
     @EventListener(ApplicationReadyEvent.class)
     public void logModelInfo() {
-        log.info("Model API base URL: {}", baseUrl);
-        log.info("Model name: {}", model);
+        log.info("【应用启动完成】 model={} baseUrl={} mockEnabled={}", model, baseUrl, mockEnabled);
     }
 }

@@ -5,7 +5,9 @@ import com.itzixi.bean.AuthLoginRequest;
 import com.itzixi.bean.AuthRegisterRequest;
 import com.itzixi.bean.AuthResponse;
 import com.itzixi.bean.AuthUserView;
+import com.itzixi.bean.ChatMetric;
 import com.itzixi.service.AppUserService;
+import com.itzixi.service.ChatMetricService;
 import com.itzixi.service.ChatRecordService;
 import com.itzixi.utils.AuthHelper;
 import com.itzixi.utils.JwtUtil;
@@ -34,6 +36,9 @@ public class AuthController {
 
     @Resource
     private ChatRecordService chatRecordService;
+
+    @Resource
+    private ChatMetricService chatMetricService;
 
     @Value("${auth.admin.username}")
     private String adminUsername;
@@ -114,6 +119,20 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
         }
         return chatRecordService.listChatUsers();
+    }
+
+    @GetMapping("/chat-metrics")
+    public List<ChatMetric> listChatMetrics(@RequestParam(required = false) String userName,
+                                            @RequestParam(defaultValue = "20") int limit,
+                                            HttpServletRequest request) {
+        String username = authHelper.requireUsername(request);
+        if (username == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
+        }
+        if (!username.equals(adminUsername)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
+        }
+        return chatMetricService.listRecentMetrics(userName, limit);
     }
 
     private AuthResponse buildAuthResponse(AppUser user) {

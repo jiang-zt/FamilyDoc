@@ -29,6 +29,7 @@ public class ServiceLogAspect {
      * @param
      * @return Object
      */
+    //给 service.impl 包下的方法统一加一层“计时日志”
     @Around("execution(* com.itzixi.service.impl..*.*(..))")
     public Object recordTimeLog(ProceedingJoinPoint joinPoint) throws Throwable {
         long startNs = System.nanoTime();
@@ -37,12 +38,12 @@ public class ServiceLogAspect {
         try {
             Object result = joinPoint.proceed();
             long costMs = (System.nanoTime() - startNs) / 1_000_000;
-            log.info("event=service_call status=success class={} method={} costMs={}",
+            log.info("【服务调用】 status=success class={} method={} costMs={}",
                     className, methodName, costMs);
             return result;
         } catch (Throwable throwable) {
             long costMs = (System.nanoTime() - startNs) / 1_000_000;
-            log.error("event=service_call status=error class={} method={} costMs={} error={}",
+            log.error("【服务调用】 status=error class={} method={} costMs={} error={}",
                     className, methodName, costMs, throwable.getMessage(), throwable);
             throw throwable;
         }

@@ -1,4 +1,4 @@
-# DeepSeek Spring AI 家庭医生项目知识库
+# DeepSeek DashScope 家庭医生项目知识库
 
 本项是一个基于 Spring Boot 架构的 AI 智能诊疗辅助系统，集成 DeepSeek (通过 Dashscope) 大模型提供医疗问答服务，并利用 SSE 技术实现流式响应。
 
@@ -60,4 +60,3 @@
 | `dashscope.mock.enabled` | 是否开启测试模拟模式 |
 
 ---
-*Created by Gemini Code Assist - 2024*

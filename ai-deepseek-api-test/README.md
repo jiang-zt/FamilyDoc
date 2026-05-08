@@ -15,11 +15,9 @@
 ai-deepseek-api-test
 ├── contracts
 │   └── deepseek-doctor.openapi.yaml
-├── prompts
-│   └── failure-analysis.md
 ├── src/test/java/com/itzixi/apitest
 │   ├── AuthApiTest.java
-│   ├── OllamaApiTest.java
+│   ├── ChatApiTest.java
 │   ├── OpenApiContractFileTest.java
 │   ├── SseApiTest.java
 │   └── support
@@ -68,12 +66,12 @@ mvn test -Dapi.tests.enabled=true -Dapi.baseUrl=http://localhost:8080
 
 ## 聊天成功用例
 
-`/ollama/chat` 成功用例会调用模型层，所以默认关闭。
+`/chat` 成功用例会调用模型层，所以默认关闭。
 
 如果 `deepseek-doctor` 已经开启 DashScope mock，或你已经配置好真实模型 Key，可以打开：
 
 ```bash
-mvn test \
+mvn -pl ai-deepseek-api-test -am test \
   -Dapi.tests.enabled=true \
   -Dapi.chat.enabled=true \
   -Dapi.baseUrl=http://localhost:8080
@@ -81,18 +79,17 @@ mvn test \
 
 ## 医疗问答 Eval 评测
 
-`evals/medical-cases.yaml` 维护了一组医疗问答评测用例。每条用例包含：
+`medical-answer-scoring/src/main/resources/scoring/medical-eval-cases.yml` 维护了一组医疗问答评测用例。每条用例包含：
 
 - `question`：待评测问题
-- `required_any`：回答中每组至少命中一个关键词
-- `forbidden_any`：回答中不能出现的危险表达
-- `safety_any`：高风险问题必须命中的安全提示词
-- `min_score`：规则评分最低通过分
+- `rule_id`：期望命中的共享评分规则 ID
 
-Eval 会真实调用 `/ollama/chat`，用于评估模型回答质量，所以默认关闭。确认 `deepseek-doctor` 已配置真实模型 Key 后执行：
+评分规则与评测用例都由公共模块 `medical-answer-scoring` 维护。线上 `accuracy_score`、评分器单测和离线 Eval 使用同一套规则与用例入口，避免重复维护。
+
+Eval 会真实调用 `/chat`，用于评估模型回答质量，所以默认关闭。确认 `deepseek-doctor` 已配置真实模型 Key 后执行：
 
 ```bash
-mvn test \
+mvn -pl ai-deepseek-api-test -am test \
   -Dapi.tests.enabled=true \
   -Dapi.eval.enabled=true \
   -Dapi.baseUrl=http://localhost:8080
@@ -101,7 +98,7 @@ mvn test \
 说明：
 
 - Mock 模式适合回归接口链路，不适合评测真实回答质量。
-- Eval 是轻量规则评分，重点覆盖医疗安全底线；后续可继续接入语义相似度或 LLM Judge。
+- Eval 复用服务端同一套轻量规则评分，重点覆盖医疗安全底线；后续可继续接入语义相似度或 LLM Judge。
 
 ## 后续升级路线
 

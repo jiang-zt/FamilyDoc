@@ -2,7 +2,7 @@ window.doctorApi = {
 
     doChat: function(bo) {
         return instance({
-            url: '/ollama/chat/stream',
+            url: '/chat/stream',
             method: 'post',
             data: bo
         })
@@ -10,7 +10,7 @@ window.doctorApi = {
 
     doChatSync: function(bo) {
         return instance({
-            url: '/ollama/chat',
+            url: '/chat',
             method: 'post',
             data: bo
         })
@@ -18,14 +18,14 @@ window.doctorApi = {
 
     getRecords: function() {
         return instance({
-            url: '/ollama/records',
+            url: '/chat/records',
             method: 'get',
         })
     },
 
     deleteRecords: function() {
         return instance({
-            url: '/ollama/records',
+            url: '/chat/records',
             method: 'delete',
         })
     },

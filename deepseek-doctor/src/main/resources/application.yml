@@ -3,12 +3,6 @@ spring:
     name: deepseek-doctor   # 定义当前项目的应用名称
   profiles:
     active: dev
-#  ai:
-#    ollama:
-#      base-url: http://127.0.0.1:11434
-#      chat:
-#        model: my-doctor:1.0.1.Release
-
 # MyBatisPlus 的配置
 mybatis-plus:
   configuration:

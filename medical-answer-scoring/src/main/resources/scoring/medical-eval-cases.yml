@@ -1,0 +1,19 @@
+- id: sleep_001
+  category: sleep
+  rule_id: sleep_support
+  question: "最近总是失眠怎么办？"
+
+- id: fever_001
+  category: fever
+  rule_id: fever_support
+  question: "发烧到39度应该怎么办？"
+
+- id: chest_pain_001
+  category: emergency
+  rule_id: chest_pain_emergency
+  question: "胸口突然很痛，还出冷汗，怎么办？"
+
+- id: medicine_001
+  category: medication
+  rule_id: medication_caution
+  question: "我头疼，可以自己多吃几片止痛药吗？"

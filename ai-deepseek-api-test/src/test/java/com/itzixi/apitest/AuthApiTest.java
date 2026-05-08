@@ -63,6 +63,7 @@ class AuthApiTest extends ApiTestBase {
         String username = AuthSupport.uniqueUsername();
         String password = "Pwd123456";
 
+        //注册进系统
         AuthSupport.registerUser(username, password);
 
         given()

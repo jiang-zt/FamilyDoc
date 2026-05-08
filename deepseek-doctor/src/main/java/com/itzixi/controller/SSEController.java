@@ -53,7 +53,7 @@ public class SSEController {
 
     /**
      * @Description: 发送单条消息给SSE的客户端
-     * @Author 风间影月
+     * @Author
      * @param userId
      * @param message
      * @return Object
