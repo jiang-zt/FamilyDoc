@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class MedicalEvalTest extends ApiTestBase {
 
-    private final MedicalAnswerScorer scorer = new MedicalAnswerScorer();
-    private final MedicalEvalCaseLoader caseLoader = new MedicalEvalCaseLoader();
+    private final MedicalAnswerScorer scorer = new MedicalAnswerScorer();//评分规则加载
+    private final MedicalEvalCaseLoader caseLoader = new MedicalEvalCaseLoader();//测试用例加载
 
     @Test
     void medicalAnswersPassRuleBasedEval() {

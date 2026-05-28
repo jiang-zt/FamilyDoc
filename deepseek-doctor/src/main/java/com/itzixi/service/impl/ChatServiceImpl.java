@@ -76,8 +76,15 @@ public class ChatServiceImpl implements ChatService {
         messages.add(Map.of("role", "system", "content", promptLoader.getSystemPrompt()));
         messages.add(Map.of("role", "user", "content", message));
         //获取返回信息流
+
+        /* 
+        这些统计变量需要在 lambda 回调里修改，而 Java 的 lambda 只能捕获 final 或 effectively final 的局部变量。
+        数组引用本身是 final 的，但数组元素可以修改，所以用 firstTokenNs[0] 这种方式保存状态。
+        它不是为了存多个值，而是把数组当成一个可变容器。
+        更规范的写法可以用 AtomicLong、AtomicInteger 或者封装一个状态对象。
+        */
         long startNs = System.nanoTime();
-        final long[] firstTokenNs = { -1L };
+        final long[] firstTokenNs = { -1L };//借数组实现“可变变量”
         final long[] lastTokenNs = { -1L };
         final long[] tokenIntervalNsSum = { 0L };
         final int[] tokenIntervalCount = { 0 };
@@ -92,20 +99,23 @@ public class ChatServiceImpl implements ChatService {
                     .doOnNext(content -> {
                         long nowNs = System.nanoTime();
                         if (firstTokenNs[0] < 0) {
-                            firstTokenNs[0] = nowNs;
+                            firstTokenNs[0] = nowNs;//记录首次chunk到达时间
                         }
                         if (lastTokenNs[0] > 0) {
-                            tokenIntervalNsSum[0] += (nowNs - lastTokenNs[0]);
-                            tokenIntervalCount[0]++;
+                            tokenIntervalNsSum[0] += (nowNs - lastTokenNs[0]);//记录总间隔
+                            tokenIntervalCount[0]++;//总间隔个数，用于评价
                         }
-                        lastTokenNs[0] = nowNs;
-                        chunkCount[0]++;
+                        lastTokenNs[0] = nowNs;//上一个chunk到达时间，用于间隔计算
+                        chunkCount[0]++;//总chunk次数
                         SSEServer.sendMessage(userName, content, SSEMsgType.ADD);
                         log.info("【流式分片】 user={} chunkIndex={} chunkChars={} chunkPreview={}",
                                 userName, chunkCount[0], content.length(), abbreviate(content, 60));
                     })
                     .collect(Collectors.toList())
                     .block();
+                    //SSE 消息是边生成边推送
+                    //但 /chat/stream 这个 HTTP 请求会等流结束后才返回
+                    //生产环境可以改成异步任务，让接口快速返回，模型流式消费放到 线程池 里执行，减少请求线程占用。
 
             if (list == null) {
                 list = new ArrayList<>();
@@ -180,7 +190,12 @@ public class ChatServiceImpl implements ChatService {
                             Long firstTokenMs,
                             Long totalMs,
                             Double avgTokenIntervalMs) {
+        
+        //ChatService 里接入评分
         MedicalAnswerScorer.ScoreResult scoreResult = medicalAnswerScorer.score(question, answer);
+        
+        //不仅保存耗时指标，也会把回答质量评分落到 chat_metric 表里
+        // 方便后续看某次回答是否通过、命中了哪条规则、扣分原因是什么
 
         ChatMetric metric = new ChatMetric();
         metric.setUserName(userName);
@@ -237,6 +252,7 @@ public class ChatServiceImpl implements ChatService {
         return text == null ? 0 : text.length();
     }
 
+    //字符串缩写
     private String abbreviate(String text, int maxLength) {
         if (text == null) {
             return "-";

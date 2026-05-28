@@ -50,6 +50,11 @@ public class TraceMdcFilter extends OncePerRequestFilter {
             MDC.remove(TRACE_ID_KEY);
             MDC.remove(USER_ID_KEY);
         }
+        /*
+        因为 Web 容器线程是复用的，
+        如果请求结束后不清理 MDC，下一个请求复用同一个线程时可能带上上一个请求的 traceId 或 userId，造成日志串线。
+        所以必须在 finally 里清理。
+         */
     }
 
     private String resolveTraceId(HttpServletRequest request) {

@@ -5,12 +5,13 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class TestDataCleaner {
 
-    private static final String TEST_USER_PREFIX = "api_test_";
+    private static final List<String> TEST_USER_PREFIXES = List.of("At", "_At", "测At");
     private static final Set<String> REGISTERED_USERNAMES = ConcurrentHashMap.newKeySet();
 
     private TestDataCleaner() {
@@ -66,6 +67,6 @@ public final class TestDataCleaner {
     }
 
     private static boolean isTestUsername(String username) {
-        return username != null && username.startsWith(TEST_USER_PREFIX);
+        return username != null && TEST_USER_PREFIXES.stream().anyMatch(username::startsWith);
     }
 }

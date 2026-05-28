@@ -25,11 +25,13 @@ public class ServiceLogAspect {
      *              .       无意义
      *              *       代表任意的方法名
      *              (..)    代表方法名的参数，这个参数是可以被传入的，也可以无参数
-     * @Author 风间影月
+     * @Author 
      * @param
      * @return Object
      */
     //给 service.impl 包下的方法统一加一层“计时日志”
+    //给 service 层统一加耗时日志，不侵入业务代码。
+    // 每个 service 方法执行前记录开始时间，执行成功记录 class、method 和 costMs；如果抛异常，就记录 error 状态和异常信息
     @Around("execution(* com.itzixi.service.impl..*.*(..))")
     public Object recordTimeLog(ProceedingJoinPoint joinPoint) throws Throwable {
         long startNs = System.nanoTime();

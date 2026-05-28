@@ -5,8 +5,10 @@ import com.itzixi.apitest.support.AuthSession;
 import com.itzixi.apitest.support.AuthSupport;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import java.beans.Transient;
+import java.util.List;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -54,6 +56,57 @@ class AuthApiTest extends ApiTestBase {
                 .body(Map.of("username", "", "password", ""))
                 .when()
                 .post("/auth/register")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void registerAcceptsValidUsernameFormats() {
+        String password = "Pwd123456";
+        List<String> usernames = List.of(
+                AuthSupport.uniqueUsername(),
+                AuthSupport.uniqueLeadingUnderscoreUsername(),
+                AuthSupport.uniqueChineseUsername()
+        );
+
+        for (String username : usernames) {
+            AuthSupport.registerUser(username, password);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "a",
+            "abcdefghi",
+            "__",
+            "123456",
+            "a-b",
+            "a b",
+            "abc@12"
+    })
+    void registerRejectsInvalidUsernameFormat(String username) {
+        given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("username", username, "password", "Pwd123456"))
+                .when()
+                .post("/auth/register")
+                .then()
+                .statusCode(400);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "abcdefghi",
+            "__",
+            "123456",
+            "a-b"
+    })
+    void loginRejectsInvalidUsernameFormatBeforeAuthentication(String username) {
+        given()
+                .contentType(ContentType.JSON)
+                .body(Map.of("username", username, "password", "Pwd123456"))
+                .when()
+                .post("/auth/login")
                 .then()
                 .statusCode(400);
     }

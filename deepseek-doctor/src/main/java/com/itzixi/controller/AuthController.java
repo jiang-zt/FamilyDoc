@@ -19,11 +19,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("auth")
 public class AuthController {
+
+    private static final Pattern USERNAME_PATTERN = Pattern.compile(
+            "^(?=.{2,8}$)(?!_+$)(?![0-9]+$)[\\p{IsHan}A-Za-z0-9_]+$"
+    );
 
     @Resource
     private AppUserService appUserService;
@@ -45,12 +50,17 @@ public class AuthController {
 
     @PostMapping("/register")
     public AuthResponse register(@RequestBody AuthRegisterRequest request) {
-        if (request.getUsername() == null || request.getUsername().trim().isEmpty()
+        if (request == null || request.getUsername() == null || request.getUsername().trim().isEmpty()
                 || request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名或密码不能为空");//400
         }
 
-        AppUser user = appUserService.register(request.getUsername().trim(), request.getPassword().trim());
+        String username = request.getUsername().trim();
+        if (!isSafeUsername(username)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名格式不合法");
+        }
+
+        AppUser user = appUserService.register(username, request.getPassword().trim());
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "用户名已存在");//409
         }
@@ -59,11 +69,17 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody AuthLoginRequest request) {
-        if (request.getUsername() == null || request.getUsername().trim().isEmpty()
+        if (request == null || request.getUsername() == null || request.getUsername().trim().isEmpty()
                 || request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名或密码不能为空");
         }
-        AppUser user = appUserService.authenticate(request.getUsername().trim(), request.getPassword().trim());
+
+        String username = request.getUsername().trim();
+        if (!isSafeUsername(username)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名格式不合法");
+        }
+
+        AppUser user = appUserService.authenticate(username, request.getPassword().trim());
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");//401
         }
@@ -149,5 +165,9 @@ public class AuthController {
         view.setId(user.getId());
         view.setUsername(user.getUsername());
         return view;
+    }
+
+    private boolean isSafeUsername(String username) {
+        return USERNAME_PATTERN.matcher(username).matches();
     }
 }

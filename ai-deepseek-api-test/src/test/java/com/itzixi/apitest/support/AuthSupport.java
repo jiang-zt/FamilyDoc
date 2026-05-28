@@ -44,7 +44,18 @@ public final class AuthSupport {
     }
 
     public static String uniqueUsername() {
-        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        return "api_test_" + suffix;
+        return "At" + randomSuffix(6);
+    }
+
+    public static String uniqueLeadingUnderscoreUsername() {
+        return "_At" + randomSuffix(5);
+    }
+
+    public static String uniqueChineseUsername() {
+        return "测At" + randomSuffix(5);
+    }
+
+    private static String randomSuffix(int length) {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, length);
     }
 }

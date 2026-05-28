@@ -32,7 +32,7 @@ public class SSEController {
 
     /**
      * @Description: 连接sse服务的接口
-     * @Author 风间影月
+     * @Author 
      * @param userId
      * @return SseEmitter
      */

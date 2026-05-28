@@ -108,8 +108,5 @@ mvn -pl ai-deepseek-api-test -am test \
 2. 接入 Schemathesis，根据 OpenAPI 自动做接口 Fuzz 测试。
 3. 接入 AI，把失败请求、响应、合约片段、日志片段交给模型做失败归因分析。
 
-简历可以描述为：
 
-```text
-设计并实现独立接口测试工程，基于 JUnit5 + REST Assured 对 AI 医生服务进行认证、权限、聊天、SSE 等接口自动化测试；维护 OpenAPI 合约文件，为后续接口 Fuzz、CI 回归和 AI 失败归因分析提供基础。
-```
+
