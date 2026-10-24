@@ -1,4 +1,4 @@
-# DSSpringAIFamilyDoctor
+# AI Family Doctor
 
 一个面向家庭健康问答场景的 AI 对话项目，采用前后端分离架构，支持 JWT 鉴权、同步问答、SSE 流式回复、聊天记录持久化与会话指标采集。
 
@@ -17,13 +17,13 @@
 - 后端：Java 21、Spring Boot 3.3.x、MyBatis-Plus、MySQL 8.x
 - 模型接入：DashScope Java SDK、SSE (`SseEmitter`)
 - 前端：Vue2、Axios、静态页面
-- 测试：JMeter、Shell 脚本、独立 API 测试工程 `ai-deepseek-api-test`
+- 测试：JMeter、Shell 脚本、独立 API 测试工程 `ai-family-doctor-api-test`
 
 ## 测试模块
 
-- `deepseek-doctor/tools/llm_smoke.sh`：端到端冒烟测试，覆盖登录、同步聊天、SSE 建连和流式触发
-- `deepseek-doctor/tools/jmeter/llm_chat_test.jmx`：JMeter 并发压测脚本，主要用于非流式接口
-- `ai-deepseek-api-test`：独立接口测试工程，用于认证、聊天、SSE 等接口回归验证
+- `ai-family-doctor-server/tools/llm_smoke.sh`：端到端冒烟测试，覆盖登录、同步聊天、SSE 建连和流式触发
+- `ai-family-doctor-server/tools/jmeter/llm_chat_test.jmx`：JMeter 并发压测脚本，主要用于非流式接口
+- `ai-family-doctor-api-test`：独立接口测试工程，用于认证、聊天、SSE 等接口回归验证
 
 ## 数据库结构
 
@@ -58,10 +58,10 @@
 2. 新库执行初始化脚本：
 
 ```text
-deepseek-doctor/src/main/resources/sql/20260321_initial_schema.sql
+ai-family-doctor-server/src/main/resources/sql/20260321_initial_schema.sql
 ```
 
-3. 旧库按需执行迁移脚本，脚本位于 `deepseek-doctor/src/main/resources/sql/`
+3. 旧库按需执行迁移脚本，脚本位于 `ai-family-doctor-server/src/main/resources/sql/`
 
 ```sql
 ALTER TABLE chat_metric
@@ -72,7 +72,7 @@ AFTER total_ms;
 当前评分明细字段迁移脚本：
 
 ```text
-deepseek-doctor/src/main/resources/sql/20260429_add_score_detail_columns.sql
+ai-family-doctor-server/src/main/resources/sql/20260429_add_score_detail_columns.sql
 ```
 
 ### 2. 配置环境变量
@@ -96,14 +96,14 @@ export DASHSCOPE_MOCK_CHUNK_SIZE=8
 ### 3. 启动后端
 
 ```bash
-cd deepseek-doctor
+cd ai-family-doctor-server
 mvn spring-boot:run
 ```
 
 或：
 
 ```bash
-cd deepseek-doctor
+cd ai-family-doctor-server
 ./run.sh
 ```
 

@@ -15,7 +15,7 @@ class OpenApiContractFileTest {
 
     @Test
     void manualContractContainsCoreDeepseekDoctorEndpoints() throws IOException {
-        Path contract = Path.of("contracts/deepseek-doctor.openapi.yaml");
+        Path contract = Path.of("contracts/ai-family-doctor.openapi.yaml");
         assertThat(contract).exists();
 
         Map<String, Object> openApi;

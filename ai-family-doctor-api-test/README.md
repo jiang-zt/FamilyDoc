@@ -1,6 +1,6 @@
-# AI DeepSeek API Test
+# AI Family Doctor API Test
 
-这是一个独立接口测试项目，用来测试旁边的 `deepseek-doctor` 服务。
+这是一个独立接口测试项目，用来测试旁边的 `ai-family-doctor-server` 服务。
 
 先沉淀了一套稳定的接口测试骨架：
 
@@ -12,9 +12,9 @@
 ## 项目结构
 
 ```text
-ai-deepseek-api-test
+ai-family-doctor-api-test
 ├── contracts
-│   └── deepseek-doctor.openapi.yaml
+│   └── ai-family-doctor-server.openapi.yaml
 ├── src/test/java/com/itzixi/apitest
 │   ├── AuthApiTest.java
 │   ├── ChatApiTest.java
@@ -34,7 +34,7 @@ mvn test
 
 ## 启动被测服务
 
-先启动 `deepseek-doctor`，默认测试地址是：
+先启动 `ai-family-doctor-server`，默认测试地址是：
 
 ```text
 http://localhost:8080
@@ -68,10 +68,10 @@ mvn test -Dapi.tests.enabled=true -Dapi.baseUrl=http://localhost:8080
 
 `/chat` 成功用例会调用模型层，所以默认关闭。
 
-如果 `deepseek-doctor` 已经开启 DashScope mock，或你已经配置好真实模型 Key，可以打开：
+如果 `ai-family-doctor-server` 已经开启 DashScope mock，或你已经配置好真实模型 Key，可以打开：
 
 ```bash
-mvn -pl ai-deepseek-api-test -am test \
+mvn -pl ai-family-doctor-api-test -am test \
   -Dapi.tests.enabled=true \
   -Dapi.chat.enabled=true \
   -Dapi.baseUrl=http://localhost:8080
@@ -86,10 +86,10 @@ mvn -pl ai-deepseek-api-test -am test \
 
 评分规则与评测用例都由公共模块 `medical-answer-scoring` 维护。线上 `accuracy_score`、评分器单测和离线 Eval 使用同一套规则与用例入口，避免重复维护。
 
-Eval 会真实调用 `/chat`，用于评估模型回答质量，所以默认关闭。确认 `deepseek-doctor` 已配置真实模型 Key 后执行：
+Eval 会真实调用 `/chat`，用于评估模型回答质量，所以默认关闭。确认 `ai-family-doctor-server` 已配置真实模型 Key 后执行：
 
 ```bash
-mvn -pl ai-deepseek-api-test -am test \
+mvn -pl ai-family-doctor-api-test -am test \
   -Dapi.tests.enabled=true \
   -Dapi.eval.enabled=true \
   -Dapi.baseUrl=http://localhost:8080

@@ -1,6 +1,6 @@
-# DeepSeek DashScope 家庭医生项目知识库
+# AI Family Doctor 后端知识库
 
-本项是一个基于 Spring Boot 架构的 AI 智能诊疗辅助系统，集成 DeepSeek (通过 Dashscope) 大模型提供医疗问答服务，并利用 SSE 技术实现流式响应。
+本项是一个基于 Spring Boot 架构的 AI 智能诊疗辅助系统，集成 DashScope 大模型提供医疗问答服务，并利用 SSE 技术实现流式响应。
 
 ## 1. 技术栈概览
 - **核心框架**: Spring Boot 3.x
@@ -55,7 +55,7 @@
 | 配置项 | 说明 |
 | :--- | :--- |
 | `dashscope.api-key` | 阿里云灵积平台 API 密钥 |
-| `dashscope.model` | 使用的模型名称 (如 deepseek-v3) |
+| `dashscope.model` | 使用的模型名称 (如 qwen3-235b-a22b) |
 | `auth.jwt.secret` | JWT 签名密钥 |
 | `dashscope.mock.enabled` | 是否开启测试模拟模式 |
 

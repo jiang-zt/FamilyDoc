@@ -6,14 +6,14 @@
 
     <parent>
         <groupId>com.itzixi</groupId>
-        <artifactId>deepseek-springai-family-doctor</artifactId>
+        <artifactId>ai-family-doctor</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>ai-deepseek-api-test</artifactId>
-    <name>ai-deepseek-api-test</name>
-    <description>Standalone API test project for deepseek-doctor.</description>
+    <artifactId>ai-family-doctor-api-test</artifactId>
+    <name>ai-family-doctor-api-test</name>
+    <description>Standalone API test project for ai-family-doctor-server.</description>
 
     <!-- 仅保留模块相关的测试开关参数，其余配置继承根 POM -->
     <properties>

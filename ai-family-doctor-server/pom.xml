@@ -6,12 +6,12 @@
 
     <parent>
         <groupId>com.itzixi</groupId>
-        <artifactId>deepseek-springai-family-doctor</artifactId>
+        <artifactId>ai-family-doctor</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>deepseek-doctor</artifactId>
+    <artifactId>ai-family-doctor-server</artifactId>
 
     <!-- 依赖版本统一由根 POM 的 dependencyManagement 管理，子模块只需声明坐标 -->
     <dependencies>
@@ -99,7 +99,7 @@
     </dependencies>
 
     <build>
-        <finalName>deepseek-doctor</finalName>
+        <finalName>ai-family-doctor-server</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

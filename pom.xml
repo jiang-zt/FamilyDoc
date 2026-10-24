@@ -14,16 +14,16 @@
     </parent>
 
     <groupId>com.itzixi</groupId>
-    <artifactId>deepseek-springai-family-doctor</artifactId>
+    <artifactId>ai-family-doctor</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>deepseek-springai-family-doctor</name>
+    <name>ai-family-doctor</name>
     <description>AI 家庭医生 · 多模块聚合工程（聚合 + 继承）</description>
 
     <modules>
         <module>medical-answer-scoring</module>
-        <module>deepseek-doctor</module>
-        <module>ai-deepseek-api-test</module>
+        <module>ai-family-doctor-server</module>
+        <module>ai-family-doctor-api-test</module>
     </modules>
 
     <!-- 统一 Java 版本与编码：spring-boot-starter-parent 会把 java.version 映射为 maven.compiler.release -->

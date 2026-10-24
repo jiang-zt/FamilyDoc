@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: DeepSeek Doctor API
+  title: AI Family Doctor API
   version: 0.1.0
   description: Manual contract used by the standalone API test project.
 servers:

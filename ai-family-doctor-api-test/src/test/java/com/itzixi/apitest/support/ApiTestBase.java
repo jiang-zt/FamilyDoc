@@ -12,7 +12,7 @@ public abstract class ApiTestBase {
     void configureRestAssured() {
         assumeTrue(
                 TestConfig.apiTestsEnabled(),
-                "API tests are disabled. Run with -Dapi.tests.enabled=true when deepseek-doctor is running."
+                "API tests are disabled. Run with -Dapi.tests.enabled=true when ai-family-doctor-server is running."
         );
         RestAssured.baseURI = TestConfig.baseUrl();
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();

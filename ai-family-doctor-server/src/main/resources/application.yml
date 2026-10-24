@@ -1,6 +1,6 @@
 spring:
   application:
-    name: deepseek-doctor   # 定义当前项目的应用名称
+    name: ai-family-doctor   # 定义当前项目的应用名称
   profiles:
     active: dev
 # MyBatisPlus 的配置
