@@ -53,3 +53,6 @@ coverage/
 /deepseek-doctor/PRODUCT.md
 /deepseek-doctor/PRODUCT.html
 /ai-deepseek-api-test/prompts/*.md
+
+# Local run scripts (per-machine absolute paths)
+**/run.sh
