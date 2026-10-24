@@ -37,4 +37,8 @@ public interface ChatRecordService {
      */
     public java.util.List<String> listChatUsers();
 
+    List<ChatRecord> getRecentMessages(String userName, int limit); // 倒序取出，内存 reverse 恢复正序
+    int nextMessageSeq(String userName);                             // MAX+1（供保存用）
+
+
 }

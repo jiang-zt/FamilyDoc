@@ -9,6 +9,8 @@ public enum SSEMsgType {
     MESSAGE("message", "单次发送的普通消息"),
     ADD("add", "消息追加，用于流式stream推送"),
     FINISH("finish", "消息完成"),
+    // 注意：业务失败事件名不能用 "error"，否则会与 EventSource 的连接层 error 事件（断线/重连）冲突
+    ERROR("chatError", "业务失败/出错，前端标记为失败态"),
     CUSTOM_EVENT("customEvent", "自定义消息的类型"),
     DONE("done", "消息完成");
 

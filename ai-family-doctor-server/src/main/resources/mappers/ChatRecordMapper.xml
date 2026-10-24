@@ -25,6 +25,20 @@
         ORDER BY chat_time DESC
     </select>
 
+    <!-- 取某用户最新 limit 条，倒序取出 -->
+    <select id="selectRecentByMember" resultMap="BaseResultMap">
+        SELECT id, content, chat_type, chat_time, family_member, message_seq
+        FROM chat_record
+        WHERE family_member = #{familyMember}
+        ORDER BY message_seq DESC
+        LIMIT #{limit}
+    </select>
+    
+    <!-- 取该用户当前最大序号，用于分配新序号 -->
+    <select id="selectMaxSeqByMember" resultType="int">
+        SELECT COALESCE(MAX(message_seq), 0) FROM chat_record WHERE family_member = #{familyMember}
+    </select>
+
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.itzixi.bean.ChatRecord">
         <id column="id" property="id" />
@@ -32,6 +46,7 @@
         <result column="chat_type" property="chatType" />
         <result column="chat_time" property="chatTime" />
         <result column="family_member" property="familyMember" />
+        <result column="message_seq" property="messageSeq" />
     </resultMap>
 
     <!-- 通用查询结果列 -->

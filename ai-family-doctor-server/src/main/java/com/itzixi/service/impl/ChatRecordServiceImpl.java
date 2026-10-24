@@ -9,6 +9,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,8 +32,22 @@ public class ChatRecordServiceImpl implements ChatRecordService {
         chatRecord.setContent(message);
         chatRecord.setChatType(chatType.type);
         chatRecord.setChatTime(LocalDateTime.now());
+        chatRecord.setMessageSeq(nextMessageSeq(userName));
 
         chatRecordMapper.insert(chatRecord);
+    }
+
+    @Override
+    public List<ChatRecord> getRecentMessages(String userName, int limit) {
+        // 数据库侧 LIMIT 倒序取出最新 limit 条，内存恢复为正序
+        List<ChatRecord> recent = chatRecordMapper.selectRecentByMember(userName, limit);
+        Collections.reverse(recent);
+        return recent;
+    }
+
+    @Override
+    public int nextMessageSeq(String userName) {
+        return chatRecordMapper.selectMaxSeqByMember(userName) + 1;
     }
 
     @Override

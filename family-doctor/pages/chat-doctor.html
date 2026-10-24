@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 家庭医生</title>
     <link rel="stylesheet" href="../../css/doctor/doctor.css">
+    <style>
+        .chat-failed { color: #e74c3c; }
+    </style>
 </head>
 <body>
     <div class="chat-container" id="doctorPage">
@@ -32,7 +35,7 @@
                     <div class="avatar">
                         <img class="avatar-img" src="../../img/doctor-avatar.png" alt="doctor">
                     </div>
-                    <div class="text" v-html="item.content"></div>
+                    <div class="text" :class="{ 'chat-failed': item.failed }" v-html="item.content"></div>
                 </div>
             </block>
 
@@ -79,6 +82,7 @@
                 sseReconnectBaseDelayMs: 1000,
                 sseReconnectMaxDelayMs: 15000,
                 beforeUnloadHandler: null,
+                isGenerating: false,
 			}
 		},
 		created() { 
@@ -174,6 +178,17 @@
                 source.addEventListener('finish', function () {
                     console.log("finish事件...");
                     me.botMsgId = null;
+                    me.isGenerating = false;
+                    me.scrollToBottom();
+                });
+
+                // 业务失败事件（后端 SSEMsgType.ERROR → SSE 事件名 chatError）
+                // 注意：区别于连接层 error（断线/重连），两者分开处理
+                source.addEventListener('chatError', function (e) {
+                    console.log("chatError事件...", e.data);
+                    me.markLastBotFailed();
+                    me.botMsgId = null;
+                    me.isGenerating = false;
                     me.scrollToBottom();
                 });
 
@@ -309,6 +324,10 @@
                     alert('请先登录');
                     return;
                 }
+                if (this.isGenerating) {
+                    alert('正在生成中，不能清空记录');
+                    return;
+                }
                 if (!confirm('确认清空当前用户聊天记录？')) {
                     return;
                 }
@@ -332,13 +351,21 @@
             },
 
             handleKeyDown(event) {
-                if (event.key === 'Enter') {    
+                if (event.key === 'Enter') {
+                    if (this.isGenerating) {
+                        return;
+                    }
                     this.doChat();
                 }
             },
 
             doChat() {
                 var currentUserName = this.currentUserName;
+
+                if (this.isGenerating) {
+                    alert('正在生成中，请稍候');
+                    return;
+                }
 
                 const userInput = document.getElementById('user-input').value;
                 var pendingMsg = userInput.trim();
@@ -349,12 +376,23 @@
                     return;
                 }
 
+                this.isGenerating = true;
+
                 // 发送消息到后端
                 var singleChat = {
                     message: pendingMsg
                 };
 
-                doctorApi.doChat(singleChat);
+                doctorApi.doChat(singleChat).catch((err) => {
+                    // 请求级失败（409 冲突 / 网络错误）：恢复发送能力，避免 isGenerating 卡死
+                    var status = err && err.response ? err.response.status : null;
+                    if (status === 409) {
+                        alert('正在生成中，请稍候再试');
+                    } else {
+                        alert('发送失败，请稍后重试');
+                    }
+                    this.isGenerating = false;
+                });
 
                 var newUserContent = {
                         content: pendingMsg,
@@ -365,6 +403,26 @@
 
                 document.getElementById('user-input').value = '';
                 this.scrollToBottom();
+            },
+
+            markLastBotFailed() {
+                // 把最后一条临时 AI 消息标记为失败态，不当作正常回答
+                if (this.chatList.length === 0) {
+                    return;
+                }
+                var last = this.chatList[this.chatList.length - 1];
+                if (last && last.chatType === 'bot') {
+                    last.failed = true;
+                } else {
+                    // 失败时还没有临时 bot 消息（如直接 chatError），补一条失败提示
+                    this.chatList.push({
+                        id: "temp",
+                        content: '回答失败，请重试',
+                        userName: 'AI 家庭医生',
+                        chatType: 'bot',
+                        failed: true,
+                    });
+                }
             },
 
             generateRandomId(length) {

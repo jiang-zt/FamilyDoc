@@ -1,6 +1,7 @@
 package com.itzixi.controller;
 
 import com.itzixi.bean.ChatEntity;
+import com.itzixi.service.ChatGenerationGuard;
 import com.itzixi.service.ChatRecordService;
 import com.itzixi.service.ChatService;
 import com.itzixi.utils.AuthHelper;//聊天前置统一鉴权
@@ -27,6 +28,9 @@ public class ChatController {
 
     @Resource
     private ChatRecordService chatRecordService;
+
+    @Resource
+    private ChatGenerationGuard chatGenerationGuard;
 
     @Resource
     private AuthHelper authHelper;
@@ -67,12 +71,19 @@ public class ChatController {
         return chatRecordService.getChatRecordList(authUser);
     }
 
-    @DeleteMapping("/records")//删除记录
+    @DeleteMapping("/records")//删除记录（与生成共用同一把占用锁：生成中不允许清空，清空中不允许生成）
     public Object deleteRecords(HttpServletRequest request) {
         String authUser = authHelper.requireUsername(request);
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        return chatRecordService.deleteChatRecords(authUser);
+        if (!chatGenerationGuard.tryAcquire(authUser)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "正在生成中，请稍候再清空");
+        }
+        try {
+            return chatRecordService.deleteChatRecords(authUser);
+        } finally {
+            chatGenerationGuard.release(authUser);
+        }
     }
 }

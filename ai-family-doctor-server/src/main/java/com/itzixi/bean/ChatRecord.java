@@ -19,4 +19,5 @@ public class ChatRecord {
     private String chatType;
     private LocalDateTime chatTime;
     private String familyMember;
+    private Integer messageSeq;//消息序列号
 }
