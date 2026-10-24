@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("auth")//http://localhost:8080/auth/
 public class AuthController {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile(

@@ -55,7 +55,7 @@ public class AppUserServiceImpl implements AppUserService {
     public AppUser findByUsername(String username) {
         QueryWrapper<AppUser> query = new QueryWrapper<>();
         query.eq("username", username);
-        return appUserMapper.selectOne(query);
+        return appUserMapper.selectOne(query);//框架把「接口调用」翻译成了「PreparedStatement 执行的 SQL」
     }
 
     @Override

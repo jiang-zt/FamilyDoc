@@ -2,7 +2,7 @@ package com.itzixi.utils;
 
 /**
  * @Description: 会话记录的类型
- * @Author 风间影月
+ * @Author 
  */
 public enum ChatTypeEnum {
 

@@ -6,21 +6,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * @ClassName CorsConfig
- * @Author 风间影月
+ * @Author 
  * @Version 1.0
  * @Description CorsConfig
  **/
-//跨域解决类 是一个配置文件 加上注解@Configuration
+
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
     //添加跨域的映射
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")//添加所有路径 全部开放，例如 /sse/connect、/chat...
-                .allowedOriginPatterns("*")
-                .allowedMethods("*")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(60 * 60);
+                .allowedOriginPatterns("*")//允许任意来源（任意协议+域名+端口）
+                .allowedMethods("*")//允许所有请求方法
+                .allowedHeaders("*")//允许所有请求头 Content-Type、Authorization、自定义 token 头
+                .allowCredentials(true)//允许浏览器携带凭证（Cookie、HTTP 认证、TLS 客户端证书等）
+                .maxAge(60 * 60);//预检请求结果的缓存时间
     }
 }

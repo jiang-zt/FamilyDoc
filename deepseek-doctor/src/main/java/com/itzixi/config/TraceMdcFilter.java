@@ -6,7 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.MDC;
+import org.slf4j.MDC;//用 SLF4J 的 MDC（Mapped Diagnostic Context）把 traceId 绑定到"当前线程"，日志框架打印%X{traceId}时自动带上它
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -17,8 +17,8 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
-public class TraceMdcFilter extends OncePerRequestFilter {
+@Order(Ordered.HIGHEST_PRECEDENCE)//最高优先级，尽量在所有业务过滤器/拦截器之前执行，保证后续日志都能带上 traceId
+public class TraceMdcFilter extends OncePerRequestFilter {//一个请求只执行一次
 
     private static final String TRACE_ID_HEADER = "X-Trace-Id";
     private static final String TRACE_ID_KEY = "traceId";
@@ -45,8 +45,8 @@ public class TraceMdcFilter extends OncePerRequestFilter {
         response.setHeader(TRACE_ID_HEADER, traceId);
 
         try {
-            filterChain.doFilter(request, response);
-        } finally {
+            filterChain.doFilter(request, response);// 放行，执行后续业务
+        } finally {//Web 容器线程是复用的
             MDC.remove(TRACE_ID_KEY);
             MDC.remove(USER_ID_KEY);
         }

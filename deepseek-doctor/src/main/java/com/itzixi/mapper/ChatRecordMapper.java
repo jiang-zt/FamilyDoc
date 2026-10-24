@@ -2,10 +2,10 @@ package com.itzixi.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.itzixi.bean.ChatRecord;
-
+//com/itzixi/mapper/ChatRecordMapper.java
 /**
  * @ClassName ChatRecordMapper
- * @Author 风间影月
+ * @Author 
  * @Version 1.0
  * @Description ChatRecordMapper
  **/

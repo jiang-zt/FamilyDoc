@@ -2,6 +2,29 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.itzixi.mapper.ChatRecordMapper">
 
+    <!-- 简单查询：参数用 #{} 绑定，返回用已有 resultMap 映射 -->
+    <select id="findByMember" resultMap="BaseResultMap">
+        SELECT id, content, chat_type, chat_time, family_member
+        FROM chat_record
+        WHERE family_member = #{familyMember}
+        ORDER BY chat_time DESC
+    </select>
+
+    <!-- 动态 SQL：<where> 自动去多余 AND，<if> 按条件拼接 -->
+    <select id="searchByKeyword" resultMap="BaseResultMap">
+        SELECT id, content, chat_type, chat_time, family_member
+        FROM chat_record
+        <where>
+            <if test="familyMember != null and familyMember != ''">
+                AND family_member = #{familyMember}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND content LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY chat_time DESC
+    </select>
+
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.itzixi.bean.ChatRecord">
         <id column="id" property="id" />
@@ -17,3 +40,9 @@
 <!--    </sql>-->
 
 </mapper>
+<!-- 调用 `chatRecordMapper.xxx()` 时，框架在本文件 namespace 下找对应的语句 
+
+#{} 生成 `PreparedStatement` 的 `?` 占位符，**预编译 + 参数绑定，防 SQL 注入**
+${} 字符串直接拼接进 SQL，有注入风险，只在拼表名 / 排序字段等无法占位时才用，且要做白名单校验
+MyBatis-Plus 的 `BaseMapper` 自带全套 CRUD + 默认下划线转驼峰，三张表都能无 XML 自动映射
+日常 CRUD 用 MyBatis-Plus 的 `BaseMapper` 就够了，手写 XML 是为复杂 / 动态 / 多表查询准备的-->

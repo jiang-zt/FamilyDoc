@@ -71,6 +71,9 @@ public class DashscopeChatClient {
         }
         try {
             GenerationParam param = buildParam(messages, true);
+            // 官方 SDK 基于 RxJava 的 `Flowable<GenerationResult>`
+            // 项目后端用的是 Project Reactor 的 `Flux<String>`
+            // 所以用 `Flux.from()` 桥接，并在 map 里做 "流式增量文本抽取"。
             Flowable<GenerationResult> result = generation.streamCall(param);
             return Flux.from(result)
                     .map(this::extractContent)
@@ -79,9 +82,10 @@ public class DashscopeChatClient {
             return Flux.error(new IllegalStateException("DashScope stream call failed: " + e.getMessage(), e));
         }
     }
-
+    //模拟stream()mock时的返回值
     private Flux<String> buildMockStream(List<Map<String, String>> messages) {
         String response = buildMockResponse(messages);
+        //模拟切片
         List<String> chunks = chunkText(response, Math.max(1, mockChunkSize));
         Flux<String> chunkFlux = Flux.fromIterable(chunks);
         if (mockChunkDelayMs > 0) {
@@ -92,7 +96,7 @@ public class DashscopeChatClient {
         }
         return chunkFlux;
     }
-
+    //模拟chat()mock时的返回值
     private String buildMockResponse(List<Map<String, String>> messages) {
         String latestUserInput = messages.stream()
                 .filter(m -> Role.USER.getValue().equals(m.get("role")))
@@ -117,6 +121,7 @@ public class DashscopeChatClient {
         return chunks;
     }
 
+    //将系统提示次+用户消息组装为dashscopesdk 接受的参数，stream 是否流式
     private GenerationParam buildParam(List<Map<String, String>> messages, boolean stream) {
         List<Message> sdkMessages = messages.stream()
                 .map(this::toMessage)
@@ -128,7 +133,7 @@ public class DashscopeChatClient {
                 .messages(sdkMessages)
                 .temperature((float) temperature)
                 .resultFormat(GenerationParam.ResultFormat.MESSAGE)
-                .incrementalOutput(stream)
+                .incrementalOutput(stream)//增量输出关键
                 .build();
     }
 

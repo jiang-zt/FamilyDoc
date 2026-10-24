@@ -18,7 +18,7 @@ import java.util.Objects;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
+//离线测评
 class MedicalEvalTest extends ApiTestBase {
 
     private final MedicalAnswerScorer scorer = new MedicalAnswerScorer();//评分规则加载

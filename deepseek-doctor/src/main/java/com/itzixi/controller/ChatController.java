@@ -3,14 +3,14 @@ package com.itzixi.controller;
 import com.itzixi.bean.ChatEntity;
 import com.itzixi.service.ChatRecordService;
 import com.itzixi.service.ChatService;
-import com.itzixi.utils.AuthHelper;
+import com.itzixi.utils.AuthHelper;//聊天前置统一鉴权
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
+//接口层
 /**
  * @ClassName ChatController
  * @Author jzt
@@ -19,7 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
  **/
 @Slf4j
 @RestController
-@RequestMapping("chat")
+@RequestMapping("chat")//http://localhost:8080/chat
 public class ChatController {
 
     @Resource
@@ -54,10 +54,11 @@ public class ChatController {
         if (message == null || message.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息不能为空");
         }
+        //统一采用用户名称记录
         chatService.chatStream(authUser, message.trim());
     }
 
-    @GetMapping("/records")
+    @GetMapping("/records")//获取聊天记录
     public Object getRecords(HttpServletRequest request) {
         String authUser = authHelper.requireUsername(request);
         if (authUser == null) {
@@ -66,7 +67,7 @@ public class ChatController {
         return chatRecordService.getChatRecordList(authUser);
     }
 
-    @DeleteMapping("/records")
+    @DeleteMapping("/records")//删除记录
     public Object deleteRecords(HttpServletRequest request) {
         String authUser = authHelper.requireUsername(request);
         if (authUser == null) {

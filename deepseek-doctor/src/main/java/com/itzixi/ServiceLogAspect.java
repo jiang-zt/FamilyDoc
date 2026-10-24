@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * @ClassName ServiceLogAspect
- * @Author 风间影月
+ * @Author 
  * @Version 1.0
  * @Description ServiceLogAspect
  **/
@@ -30,15 +30,16 @@ public class ServiceLogAspect {
      * @return Object
      */
     //给 service.impl 包下的方法统一加一层“计时日志”
-    //给 service 层统一加耗时日志，不侵入业务代码。
-    // 每个 service 方法执行前记录开始时间，执行成功记录 class、method 和 costMs；如果抛异常，就记录 error 状态和异常信息
+    //给 service 层统一加耗时日志
+    // 每个 service 方法执行前记录开始时间，执行成功记录 class、method 和 costMs；
+    // 如果抛异常，就记录 error 状态和异常信息
     @Around("execution(* com.itzixi.service.impl..*.*(..))")
     public Object recordTimeLog(ProceedingJoinPoint joinPoint) throws Throwable {
         long startNs = System.nanoTime();
         String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
         try {
-            Object result = joinPoint.proceed();
+            Object result = joinPoint.proceed();//执行
             long costMs = (System.nanoTime() - startNs) / 1_000_000;
             log.info("【服务调用】 status=success class={} method={} costMs={}",
                     className, methodName, costMs);

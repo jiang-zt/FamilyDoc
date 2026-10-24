@@ -2,7 +2,7 @@ package com.itzixi.utils;
 
 /**
  * @Description: 发送SSE的消息类型
- * @Author 风间影月
+ * @Author 
  */
 public enum SSEMsgType {
 

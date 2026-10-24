@@ -52,7 +52,7 @@ public class ChatRecordServiceImpl implements ChatRecordService {
     }
 
     @Override
-    public java.util.List<String> listChatUsers() {
+    public java.util.List<String> listChatUsers() {//有对话记录的成员
         QueryWrapper<ChatRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.select("distinct family_member");
         java.util.List<ChatRecord> records = chatRecordMapper.selectList(queryWrapper);

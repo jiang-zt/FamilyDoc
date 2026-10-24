@@ -7,9 +7,8 @@ import lombok.Data;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-
+//MyBatis-Plus 的实体类，映射数据库表 app_user
 @Data
-@ToString
 @TableName("app_user")
 public class AppUser {
 

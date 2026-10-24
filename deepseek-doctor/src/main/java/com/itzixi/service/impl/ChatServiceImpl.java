@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * @Version 1.0
  * @Description ChatServiceImpl
  **/
-
+//多实现、跨模块契约、需要 mock、需要 AOP 接口代理
 @Slf4j
 @Service
 public class ChatServiceImpl implements ChatService {
@@ -57,9 +57,13 @@ public class ChatServiceImpl implements ChatService {
         messages.add(Map.of("role", "user", "content", msg));
         log.info("【会话开始-同步】 user={} questionChars={} questionPreview={}",
                 userName, msg.length(), abbreviate(msg, 80));
+
         String answer = sanitizeChunk(dashscopeChatClient.chat(messages));
         long totalMs = Duration.ofNanos(System.nanoTime() - startNs).toMillis();
+
+        //评分并记录落库
         saveMetric(userName, msg, answer, totalMs, totalMs, null);
+
         log.info("【会话结束-同步】 user={} totalMs={} answerChars={} answerPreview={}",
                 userName, totalMs, safeLength(answer), abbreviate(answer, 120));
         return answer;
@@ -68,7 +72,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public void chatStream(String userName, String message) {
 
-        // 保存用户发送的记录到数据库
+        // 保存用户发送的记录到数据库，用于回显
         chatRecordService.saveChatRecord(userName, message, ChatTypeEnum.USER);
 
         // 构造消息（系统指令 + 用户问题）
@@ -79,7 +83,7 @@ public class ChatServiceImpl implements ChatService {
 
         /* 
         这些统计变量需要在 lambda 回调里修改，而 Java 的 lambda 只能捕获 final 或 effectively final 的局部变量。
-        数组引用本身是 final 的，但数组元素可以修改，所以用 firstTokenNs[0] 这种方式保存状态。
+        数组引用本身是 final 的，但数组元素可以修改，所以用 firstTokenNs[0] 这种方式保存状态
         它不是为了存多个值，而是把数组当成一个可变容器。
         更规范的写法可以用 AtomicLong、AtomicInteger 或者封装一个状态对象。
         */
@@ -92,11 +96,13 @@ public class ChatServiceImpl implements ChatService {
         log.info("【会话开始-流式】 user={} questionChars={} questionPreview={}",
                 userName, message.length(), abbreviate(message, 80));
         try {
+            //0~N 个字符串的异步序列
+            //下游消费不过来时，上游可以减速，不会把内存撑爆
             Flux<String> streamResponse = dashscopeChatClient.stream(messages);
             List<String> list = streamResponse
-                    .map(this::sanitizeChunk)
-                    .filter(content -> content != null && !content.isBlank())
-                    .doOnNext(content -> {
+                    .map(this::sanitizeChunk)//对每个分片做清洗
+                    .filter(content -> content != null && !content.isBlank())//丢掉 null 和空白分片
+                    .doOnNext(content -> {//"每个分片到达时触发一次推送"的钩子
                         long nowNs = System.nanoTime();
                         if (firstTokenNs[0] < 0) {
                             firstTokenNs[0] = nowNs;//记录首次chunk到达时间
@@ -111,7 +117,7 @@ public class ChatServiceImpl implements ChatService {
                         log.info("【流式分片】 user={} chunkIndex={} chunkChars={} chunkPreview={}",
                                 userName, chunkCount[0], content.length(), abbreviate(content, 60));
                     })
-                    .collect(Collectors.toList())
+                    .collect(Collectors.toList())//最后转为list<string>返回
                     .block();
                     //SSE 消息是边生成边推送
                     //但 /chat/stream 这个 HTTP 请求会等流结束后才返回
@@ -135,17 +141,18 @@ public class ChatServiceImpl implements ChatService {
                     log.warn("【流式降级】 user={} reason=empty_stream fallbackChars={} fallbackPreview={}",
                             userName, fallback.length(), abbreviate(fallback, 100));
                 } else {
-                    log.warn("【流式异常】 user={} reason=empty_stream_and_empty_fallback", userName);
+                    //chat也无返回内容
+                    log.warn("【异常】 user={} reason=empty_stream_and_empty_fallback", userName);
                 }
             }
 
             SSEServer.sendMessage(userName, "bye", SSEMsgType.FINISH);
 
-            // 保存AI回复的记录到数据库
+            // 保存AI回复记录到数据库
             String htmlResult = String.join("", list);
             chatRecordService.saveChatRecord(userName, htmlResult, ChatTypeEnum.BOT);
 
-            // 保存指标
+            // 保存ai回复指标
             long endNs = System.nanoTime();
             long firstTokenMs = firstTokenNs[0] < 0 ? -1L : Duration.ofNanos(firstTokenNs[0] - startNs).toMillis();
             long totalMs = Duration.ofNanos(endNs - startNs).toMillis();
@@ -176,7 +183,7 @@ public class ChatServiceImpl implements ChatService {
         if (text == null || text.isEmpty()) {
             return 0;
         }
-        String[] parts = text.trim().split("\\s+");
+        String[] parts = text.trim().split("\\s+");//一个或多个空格
         return parts.length;
     }
 
@@ -219,6 +226,7 @@ public class ChatServiceImpl implements ChatService {
         metric.setCreatedAt(LocalDateTime.now());
 
         try {
+            //入库
             chatMetricService.saveMetric(metric);
         } catch (Exception metricEx) {
             log.error("【评分入库异常】 user={} error={}", userName, metricEx.getMessage(), metricEx);

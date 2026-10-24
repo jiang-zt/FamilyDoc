@@ -17,7 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * @ClassName SSEController
- * @Author 风间影月
+ * @Author 
  * @Version 1.0
  * @Description SSEController
  **/
@@ -66,7 +66,7 @@ public class SSEController {
 
     /**
      * @Description: 发送消息给所有客户端用户
-     * @Author 风间影月
+     * @Author 
      * @param message
      * @return Object
      */
@@ -78,7 +78,7 @@ public class SSEController {
 
     /**
      * @Description: add事件流式输出
-     * @Author 风间影月
+     * @Author 
      * @param userId
      * @param message
      * @return Object
@@ -95,7 +95,7 @@ public class SSEController {
 
     /**
      * @Description: 停止sse
-     * @Author 风间影月
+     * @Author 
      * @param userId
      * @return Object
      */
@@ -106,7 +106,7 @@ public class SSEController {
     }
     /**
      * @Description: 获得当前所有的会话总连接数（在线人数）
-     * @Author 风间影月
+     * @Author 
      * @param
      * @return Object
      */

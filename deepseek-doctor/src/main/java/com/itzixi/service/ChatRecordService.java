@@ -9,7 +9,7 @@ public interface ChatRecordService {
 
     /**
      * @Description: 保存用户和AI的聊天记录
-     * @Author 风间影月
+     * @Author 
      * @param userName
      * @param message
      * @param chatType
@@ -18,7 +18,7 @@ public interface ChatRecordService {
 
     /**
      * @Description: 查询用户和AI的历史聊天记录
-     * @Author 风间影月
+     * @Author 
      * @param userName
      * @return List<ChatRecord>
      */

@@ -2,7 +2,7 @@
 
 这是一个独立接口测试项目，用来测试旁边的 `deepseek-doctor` 服务。
 
-第一阶段目标不是马上做复杂平台，而是先沉淀一套稳定的接口测试骨架：
+先沉淀了一套稳定的接口测试骨架：
 
 - 用 REST Assured 编写接口自动化测试
 - 用 JUnit 5 管理测试执行
@@ -100,13 +100,6 @@ mvn -pl ai-deepseek-api-test -am test \
 - Mock 模式适合回归接口链路，不适合评测真实回答质量。
 - Eval 复用服务端同一套轻量规则评分，重点覆盖医疗安全底线；后续可继续接入语义相似度或 LLM Judge。
 
-## 后续升级路线
-
-下一步可以继续做三件事：
-
-1. 给 `deepseek-doctor` 补 Swagger/OpenAPI 自动生成，替代手写合约。
-2. 接入 Schemathesis，根据 OpenAPI 自动做接口 Fuzz 测试。
-3. 接入 AI，把失败请求、响应、合约片段、日志片段交给模型做失败归因分析。
 
 
 
