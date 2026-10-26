@@ -8,12 +8,9 @@ import com.itzixi.service.ChatService;
 import com.itzixi.utils.ChatTypeEnum;
 import com.itzixi.utils.DashscopeChatClient;
 import com.itzixi.utils.PromptLoader;
-import com.itzixi.utils.SSEMsgType;
-import com.itzixi.utils.SSEServer;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import com.itzixi.bean.ChatRecord;
 import com.itzixi.service.ChatGenerationGuard;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @ClassName ChatServiceImpl
@@ -59,6 +55,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Value("${chat.context.max-chars:12000}")
     private int ctxMaxChars;      // 历史内容上限
+
+    @Value("${chat.stream.model-timeout-ms:120000}")
+    private long streamTimeoutMs;
 
     @Resource
     private ChatTurnSaver chatTurnSaver;
@@ -95,129 +94,72 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
+    /** 仅由 ChatStreamWorker 异步调用；生成占用在 Controller 提交任务前获取。 */
     @Override
-    public void chatStream(String userName, String message) {
-        if (!chatGenerationGuard.tryAcquire(userName)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "已有生成任务进行中，请稍候");
-        }
-        try {
-        //组装上下文
-        List<Map<String, String>> messages = buildMessages(userName, message);
-        /* 
-        这些统计变量需要在 lambda 回调里修改，而 Java 的 lambda 只能捕获 final 或 effectively final 的局部变量。
-        数组引用本身是 final 的，但数组元素可以修改，所以用 firstTokenNs[0] 这种方式保存状态
-        它不是为了存多个值，而是把数组当成一个可变容器。
-        更规范的写法可以用 AtomicLong、AtomicInteger 或者封装一个状态对象。
-        */
+    public void chatStream(String userName, String message, com.itzixi.stream.ChatStreamSession session) {
         long startNs = System.nanoTime();
-        final long[] firstTokenNs = { -1L };//借数组实现“可变变量”
-        final long[] lastTokenNs = { -1L };
-        final long[] tokenIntervalNsSum = { 0L };
-        final int[] tokenIntervalCount = { 0 };
-        final int[] chunkCount = { 0 };
-        log.info("【会话开始-流式】 user={} questionChars={} questionPreview={}",
-                userName, message.length(), abbreviate(message, 80));
+        java.util.concurrent.atomic.AtomicLong firstNs = new java.util.concurrent.atomic.AtomicLong(-1);
+        java.util.concurrent.atomic.AtomicLong lastNs = new java.util.concurrent.atomic.AtomicLong(-1);
+        java.util.concurrent.atomic.AtomicLong intervalSum = new java.util.concurrent.atomic.AtomicLong();
+        java.util.concurrent.atomic.AtomicLong intervalCount = new java.util.concurrent.atomic.AtomicLong();
+        String stage = "INTERNAL_ERROR";
         try {
-            //0~N 个字符串的异步序列//获取返回信息流
-            //下游消费不过来时，上游可以减速，不会把内存撑爆
-            Flux<String> streamResponse = dashscopeChatClient.stream(messages);
-            List<String> list = streamResponse
-                    .map(this::sanitizeChunk)//对每个分片做清洗
-                    .filter(content -> content != null && !content.isBlank())//丢掉 null 和空白分片
-                    .doOnNext(content -> {//"每个分片到达时触发一次推送"的钩子
-                        long nowNs = System.nanoTime();
-                        if (firstTokenNs[0] < 0) {
-                            firstTokenNs[0] = nowNs;//记录首次chunk到达时间
+            if (session.isCancelled()) return;//获取会话状态
+            List<Map<String, String>> messages = buildMessages(userName, message);//组织对话消息+上下文
+            stage = "MODEL_ERROR";
+            List<String> chunks = dashscopeChatClient.stream(messages)
+                    .map(this::sanitizeChunk)
+                    .filter(content -> !content.isEmpty())
+                    .doOnNext(content -> {
+                        long now = System.nanoTime();
+                        firstNs.compareAndSet(-1, now);
+                        long previous = lastNs.getAndSet(now);
+                        if (previous >= 0) {
+                            intervalSum.addAndGet(now - previous);
+                            intervalCount.incrementAndGet();
                         }
-                        if (lastTokenNs[0] > 0) {
-                            tokenIntervalNsSum[0] += (nowNs - lastTokenNs[0]);//记录总间隔
-                            tokenIntervalCount[0]++;//总间隔个数，用于评价
-                        }
-                        lastTokenNs[0] = nowNs;//上一个chunk到达时间，用于间隔计算
-                        chunkCount[0]++;//总chunk次数
-                        SSEServer.sendMessage(userName, content, SSEMsgType.ADD);
-                        log.info("【流式分片】 user={} chunkIndex={} chunkChars={} chunkPreview={}",
-                                userName, chunkCount[0], content.length(), abbreviate(content, 60));
+                        session.delta(content);//流式推送
                     })
-                    .collect(Collectors.toList())//最后转为list<string>返回
-                    .block();
-                    //SSE 消息是边生成边推送
-                    //但 /chat/stream 这个 HTTP 请求会等流结束后才返回
-                    //生产环境可以改成异步任务，让接口快速返回，模型流式消费放到 线程池 里执行，减少请求线程占用。
-
-            if (list == null) {
-                list = new ArrayList<>();
+                    .collectList()
+                    .takeUntilOther(session.cancellation())
+                    .block(Duration.ofMillis(streamTimeoutMs));
+            if (session.isCancelled()) return;
+            String answer = chunks == null ? "" : String.join("", chunks);
+            if (answer.isBlank()) {
+                session.failed("EMPTY_RESPONSE", "模型未返回有效回答，请重试");
+                return;
             }
-
-            // 兜底：如果流式没有拿到任何有效内容，降级为一次性返回，避免前端无回复
-            boolean hasAnyContent = list.stream().anyMatch(s -> s != null && !s.isBlank());
-            boolean validAnswer = hasAnyContent;
-            if (!hasAnyContent) {
-                String fallback = sanitizeChunk(dashscopeChatClient.chat(messages));
-                if (fallback != null && !fallback.isBlank()) {
-                    SSEServer.sendMessage(userName, fallback, SSEMsgType.ADD);
-                    list = new ArrayList<>();
-                    list.add(fallback);
-                    validAnswer = true;
-                    if (firstTokenNs[0] < 0) {
-                        firstTokenNs[0] = System.nanoTime();
-                    }
-                    log.warn("【流式降级】 user={} reason=empty_stream fallbackChars={} fallbackPreview={}",
-                            userName, fallback.length(), abbreviate(fallback, 100));
-                } else {
-                    //chat也无返回内容：不发成功信号，发明确失败事件后退出（不保存）
-                    log.warn("【异常】 user={} reason=empty_stream_and_empty_fallback", userName);
-                    SSEServer.sendMessage(userName, "模型未返回有效回答，请重试", SSEMsgType.ERROR);
-                    return;
-                }
+            long totalMs = Duration.ofNanos(System.nanoTime() - startNs).toMillis();
+            long firstTokenMs = Duration.ofNanos(firstNs.get() - startNs).toMillis();
+            Double avg = intervalCount.get() == 0 ? null
+                    : roundTo2(intervalSum.get() / 1_000_000.0 / intervalCount.get());
+            stage = "SAVE_FAILED";
+            if (session.saveAndDone(() -> chatTurnSaver.saveCompletedTurn(userName, message, answer))) {
+                session.close(); // 提交完成后释放响应和占用，指标不阻塞下一轮。
+                // 评分/指标是旁路，不能把已提交回答改判失败。
+                try { saveMetric(userName, message, answer, firstTokenMs, totalMs, avg); }
+                catch (Exception metricEx) { log.warn("流式指标记录失败 user={}", userName, metricEx); }
             }
-
-            String htmlResult = String.join("", list);
-            long endNs = System.nanoTime();
-            long firstTokenMs = firstTokenNs[0] < 0 ? -1L : Duration.ofNanos(firstTokenNs[0] - startNs).toMillis();
-            long totalMs = Duration.ofNanos(endNs - startNs).toMillis();
-            Double avgTokenIntervalMs = null;
-            if (tokenIntervalCount[0] > 0) {
-                avgTokenIntervalMs = roundTo2((tokenIntervalNsSum[0] / 1_000_000.0) / tokenIntervalCount[0]);
-            }
-
-            if (validAnswer) {
-                // 有有效回答：短事务保存完整问答，保存成功才发 FINISH
-                try {
-                    chatTurnSaver.saveCompletedTurn(userName, message, htmlResult);
-                    SSEServer.sendMessage(userName, "bye", SSEMsgType.FINISH);
-                } catch (Exception saveEx) {
-                    // 保存失败：不发成功结束信号，发明确失败事件
-                    log.error("【流式保存问答失败】 user={} error={}", userName, saveEx.getMessage(), saveEx);
-                    SSEServer.sendMessage(userName, "保存聊天记录失败，请重试", SSEMsgType.ERROR);
-                }
-                // 评分入库（旁路：失败不影响回答成功判定）
-                saveMetric(userName, message, htmlResult, firstTokenMs, totalMs, avgTokenIntervalMs);
-            } else {
-                // 空回答：不保存为成功轮次，发明确失败事件
-                log.warn("【流式空回答】 user={} reason=no_valid_content", userName);
-                SSEServer.sendMessage(userName, "模型未返回有效回答，请重试", SSEMsgType.ERROR);
-            }
-
-            log.info("【会话结束-流式】 user={} totalMs={} firstTokenMs={} avgTokenIntervalMs={} chunkCount={} answerChars={} answerPreview={}",
-                    userName,
-                    totalMs,
-                    firstTokenMs,
-                    avgTokenIntervalMs,
-                    chunkCount[0],
-                    htmlResult.length(),
-                    abbreviate(htmlResult, 120));
         } catch (Exception ex) {
-            log.error("【会话异常】 user={} questionPreview={} error={}",
-                    userName, abbreviate(message, 80), ex.getMessage(), ex);
-            // 明确失败事件，不发成功结束信号
-            SSEServer.sendMessage(userName, "模型调用失败，请检查 API Key 或模型权限", SSEMsgType.ERROR);
-        } 
+            if (!session.isCancelled()) {
+                String code = reactor.core.Exceptions.unwrap(ex) instanceof java.util.concurrent.TimeoutException
+                        || ex.getCause() instanceof java.util.concurrent.TimeoutException
+                        ? "MODEL_TIMEOUT" : stage;
+                if ("MODEL_TIMEOUT".equals(code)) session.releaseGeneration();
+                log.warn("流式回答失败 user={} code={}", userName, code, ex);
+                try {
+                    session.failed(code, switch (code) {
+                        case "SAVE_FAILED" -> "保存聊天记录失败，请稍后重试";
+                        case "MODEL_TIMEOUT" -> "模型响应超时，请稍后重试";
+                        default -> "回答生成失败，请稍后重试";
+                    });
+                } catch (com.itzixi.stream.ChatStreamSession.StreamDisconnectedException ignored) {
+                    // 已断开连接，仅执行 finally 清理。
+                }
+            }
+        } finally {
+            session.close();
         }
-        finally {
-            chatGenerationGuard.release(userName);
-        }
-    
     }
 
     private int estimateTokens(String text) {

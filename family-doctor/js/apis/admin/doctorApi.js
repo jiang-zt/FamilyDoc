@@ -1,11 +1,22 @@
 window.doctorApi = {
 
-    doChat: function(bo) {
-        return instance({
-            url: '/chat/stream',
-            method: 'post',
-            data: bo
-        })
+    doChat: async function(bo, onEvent, signal) {
+        const response = await fetch(window.appConfig.backendBaseURL + '/chat/stream', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+                'Authorization': 'Bearer ' + cookieUtils.getToken()
+            },
+            body: JSON.stringify(bo),
+            signal: signal
+        });
+        if (response.status === 401) {
+            cookieUtils.removeUserInfo();
+            cookieUtils.removeToken();
+        }
+        return window.chatStream.read(response, onEvent);
     },
 
     doChatSync: function(bo) {

@@ -42,23 +42,21 @@ CHAT_BODY=$(printf '{"message":"%s"}' "$(json_escape "${MESSAGE}")")
 CHAT_RESP="$(post_json "${BASE_URL}/chat" "${CHAT_BODY}" "${TOKEN}")"
 echo "同步返回：${CHAT_RESP}"
 
-echo "[3/5] 建立 SSE 连接..."
+echo "[3/5] 发起独立流式 POST ..."
 SSE_TMP="$(mktemp)"
-cleanup() {
-  if [[ -n "${SSE_PID:-}" ]]; then
-    kill "${SSE_PID}" >/dev/null 2>&1 || true
-  fi
-  rm -f "${SSE_TMP}"
-}
-trap cleanup EXIT
+trap 'rm -f "${SSE_TMP}"' EXIT
+curl --fail -sS -N --max-time 190 -X POST "${BASE_URL}/chat/stream" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d "${CHAT_BODY}" > "${SSE_TMP}"
 
-curl -sS -N "${BASE_URL}/sse/connect?userId=${USERNAME}&token=${TOKEN}" > "${SSE_TMP}" &
-SSE_PID=$!
-sleep 1
+echo "[4/5] 校验终止事件 ..."
+if ! grep -Eq '^event: ?done\r?$' "${SSE_TMP}" || grep -Eq '^event: ?failed\r?$' "${SSE_TMP}"; then
+  cat "${SSE_TMP}"
+  echo "流式回答未成功完成"
+  exit 1
+fi
 
-echo "[4/5] 触发流式接口 /chat/stream ..."
-post_json "${BASE_URL}/chat/stream" "${CHAT_BODY}" "${TOKEN}" >/dev/null
-sleep 3
-
-echo "[5/5] 最近 SSE 事件："
-tail -n 40 "${SSE_TMP}" || true
+echo "[5/5] 本轮 SSE 事件："
+tail -n 40 "${SSE_TMP}"

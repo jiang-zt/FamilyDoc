@@ -45,6 +45,12 @@ class ChatServiceImplTest {
     @Mock
     private MedicalAnswerScorer medicalAnswerScorer;
 
+    @Mock
+    private ChatTurnSaver chatTurnSaver;
+
+    @org.mockito.Spy
+    private com.itzixi.service.ChatGenerationGuard chatGenerationGuard = new com.itzixi.service.ChatGenerationGuard();
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -109,7 +115,8 @@ class ChatServiceImplTest {
         assertThat(metric.getScoreIssues()).isEqualTo("缺少进一步观察或补充信息引导");
         assertThat(metric.getCreatedAt()).isNotNull();
         
-        //这个方法一次都没被调用：不记录聊天记录
+        // 通过独立事务服务保存完整问答，不直接单条写入记录
+        verify(chatTurnSaver).saveCompletedTurn("alice", "我头疼怎么办？", answer);
         verify(chatRecordService, never()).saveChatRecord(any(), any(), any());
     }
 

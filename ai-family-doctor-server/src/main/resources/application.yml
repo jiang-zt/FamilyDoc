@@ -33,6 +33,12 @@ dashscope:
     chunk-size: ${DASHSCOPE_MOCK_CHUNK_SIZE:6}
 
 chat:
+  stream:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 16
+    model-timeout-ms: 120000
+    emitter-timeout-ms: 180000
   context:
     max-turns: 10        # 最近 10 轮完整问答（初始值）
     max-chars: 12000     # 历史上下文最多 12000 字符

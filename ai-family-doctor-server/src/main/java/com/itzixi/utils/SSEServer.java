@@ -118,6 +118,9 @@ public class SSEServer {
      * @Description: 主动切断，停止sse服务和客户端的连接
      * @param userId
      */
+    // 主动 `stop` ，被动（超时 / 错误 / 推流失败）统一走 `complete()` + 幂等 `remove()`
+    // 被动（超时 / 错误 / 推流失败）也统一走 `removeConnection` 回收
+    //但本策略客户端突然断开无法主动发现
     public static void stopServer(String userId) {
         if (CollectionUtils.isEmpty(sseClients)) {
             return;
@@ -135,7 +138,7 @@ public class SSEServer {
     }
 
     /**
-     * @Description: SSE连接完成后的回调方法（关闭连接的时候调用）
+     * @Description: SSE连接完成
      * @param userId
      * @return Runnable
      */
@@ -171,7 +174,7 @@ public class SSEServer {
     }
 
     /**
-     * @Description: 从整个SSE服务中移除用户连接
+     * @Description 移除用户连接
      * @param userId
      */
     public static void removeConnection(String userId) {

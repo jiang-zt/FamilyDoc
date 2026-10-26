@@ -127,90 +127,56 @@ class SseApiTest extends ApiTestBase {
     }
 
     @Test
-    void streamChatEmitsAddThenFinishAndPersistsJoinedReply() throws IOException {
-        assumeTrue(
-                TestConfig.chatTestsEnabled(),
-                "Stream chat test is disabled because it calls the model layer. Enable with -Dapi.chat.enabled=true."
-        );
-
+    void streamChatReturnsDeltaThenDoneAndPersistsJoinedReply() throws IOException {
+        assumeTrue(TestConfig.chatTestsEnabled(), "Enable with -Dapi.chat.enabled=true.");
         AuthSession user = AuthSupport.registerRandomUser();
         String message = "SSE自动化测试-" + System.currentTimeMillis();
-        // 删除历史聊天记录
-        given()
+        // 无预先建立的 /sse/connect：响应本身就是本轮事件流，asString 等待连接完成。
+        var response = given()
                 .header("Authorization", "Bearer " + user.token())
-                .when()
-                .delete("/chat/records")
-                .then()
-                .statusCode(200);
-        // 建立连接并发送请求
-        try (SseTestClient.Connection connection = openSseConnection(user)) {
-            given()
-                    .header("Authorization", "Bearer " + user.token())
-                    .contentType(ContentType.JSON)
-                    .body(Map.of("message", message))
-                    .when()
-                    .post("/chat/stream")
-                    .then()
-                    .statusCode(200);
-            // 等待流式响应完成
-            List<SseTestClient.SseEvent> finishedEvents = connection.awaitEvents(
-                    current -> current.stream().anyMatch(event -> "finish".equals(event.event())),
-                    Duration.ofSeconds(20)
-            );
-            assertThat(finishedEvents).isNotEmpty();
-            // 等待全部发送完成
-            Thread.sleep(200);
-            // 获取响应
-            List<SseTestClient.SseEvent> events = connection.snapshot();
-            //验证最后一个事件是finish
-            assertThat(events).isNotEmpty();
-            assertThat(events).last().extracting(SseTestClient.SseEvent::event).isEqualTo("finish");
-            //验证finish事件只有1个
-            assertThat(events.stream().filter(event -> "finish".equals(event.event())).count()).isEqualTo(1);
-
-            //验证finish事件不是第一个
-            int finishIndex = indexOfFinish(events);
-            assertThat(finishIndex).isGreaterThan(0);
-            //验证finish事件前全是add事件
-            List<SseTestClient.SseEvent> addEvents = events.subList(0, finishIndex);
-            assertThat(addEvents).allMatch(event -> "add".equals(event.event()));
-            // 拼接回复并验证回复内容不为空
-            String joinedReply = addEvents.stream()
-                    .map(SseTestClient.SseEvent::data)
-                    .reduce("", String::concat);
-            assertThat(joinedReply).isNotBlank();
-
-            // 从数据库中获取的聊天记录
-            List<Map<String, Object>> records = given()
-                    .header("Authorization", "Bearer " + user.token())
-                    .when()
-                    .get("/chat/records")
-                    .then()
-                    .statusCode(200)
-                    .extract()
-                    .jsonPath()
-                    .getList("$");
-
-            assertThat(records).hasSize(2);
-            assertThat(records).anySatisfy(record -> {
-                assertThat(record.get("chatType")).isEqualTo("user");
-                assertThat(record.get("content")).isEqualTo(message);
-            });
-            //验证聊天记录落库
-            assertThat(records).anySatisfy(record -> {
-                assertThat(record.get("chatType")).isEqualTo("bot");
-                String savedReply = String.valueOf(record.get("content"));
-                assertThat(savedReply).isNotBlank();
-                assertThat(savedReply).contains(message);
-                assertThat(normalizeWhitespace(savedReply)).isEqualTo(normalizeWhitespace(joinedReply));
-            });
-
-            stopSse(user.username());
-            connection.awaitClosed(Duration.ofSeconds(3));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while waiting for finish event", e);
+                .contentType(ContentType.JSON)
+                .body(Map.of("message", message))
+                .when().post("/chat/stream")
+                .then().statusCode(200).contentType("text/event-stream")
+                .extract().response();
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var events = new java.util.ArrayList<String>();
+        StringBuilder reply = new StringBuilder();
+        String requestId = null;
+        for (String block : response.asString().replace("\r\n", "\n").split("\n\n")) {
+            String name = null;
+            String data = null;
+            for (String line : block.split("\n")) {
+                if (line.startsWith("event:")) name = line.substring(6).trim();
+                if (line.startsWith("data:")) data = line.substring(5).stripLeading();
+            }
+            if (name == null) continue;
+            assertThat(name).isIn("delta", "done");
+            var payload = mapper.readTree(data);
+            String id = payload.path("requestId").asText();
+            assertThat(id).isNotBlank();
+            if (requestId == null) requestId = id;
+            assertThat(id).isEqualTo(requestId);
+            events.add(name);
+            if ("delta".equals(name)) reply.append(payload.path("text").asText());
         }
+        assertThat(events).isNotEmpty();
+        assertThat(events.get(events.size() - 1)).isEqualTo("done");
+        assertThat(events.stream().filter("done"::equals).count()).isEqualTo(1);
+        assertThat(reply.toString()).isNotBlank();
+        List<Map<String, Object>> records = given()
+                .header("Authorization", "Bearer " + user.token())
+                .when().get("/chat/records")
+                .then().statusCode(200).extract().jsonPath().getList("$");
+        assertThat(records).hasSize(2);
+        assertThat(records).anySatisfy(record -> {
+            assertThat(record.get("chatType")).isEqualTo("user");
+            assertThat(record.get("content")).isEqualTo(message);
+        });
+        assertThat(records).anySatisfy(record -> {
+            assertThat(record.get("chatType")).isEqualTo("bot");
+            assertThat(record.get("content")).isEqualTo(reply.toString());
+        });
     }
 
     private SseTestClient.Connection openSseConnection(AuthSession user) throws IOException {
@@ -254,19 +220,6 @@ class SseApiTest extends ApiTestBase {
             assertThat(onlineCount()).isEqualTo(expected);
             sleepBriefly();
         }
-    }
-
-    private int indexOfFinish(List<SseTestClient.SseEvent> events) {
-        for (int i = 0; i < events.size(); i++) {
-            if ("finish".equals(events.get(i).event())) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private String normalizeWhitespace(String value) {
-        return value == null ? "" : value.replaceAll("\\s+", "");
     }
 
     private void sleepBriefly() {

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+//SSE 和 REST 最大的不同是它建连后服务器就能持续主动推数据、且长期占资源
+// 所以必须鉴权（防伪装建连偷听）、计数（可观测 / 防泄漏）、清理（防僵尸连接耗尽 socket）
 
 /**
  * @ClassName SSEController
@@ -36,7 +38,7 @@ public class SSEController {
      * @param userId
      * @return SseEmitter
      */
-    //当客户端访问 GET /connect?userId={xxx}
+    //当客户端访问 GET /connect?userId={xxx} url携带userid必须等于 jwt从request里解析出来的的id
     //方法返回 SseEmitter 对象后，服务器会保持连接开放（HTTP 长连接），持续推送事件到客户端
     //MediaType.TEXT_EVENT_STREAM_VALUE 声明返回 SSE 数据流 封装在header中
     @GetMapping(path = "connect", produces = {MediaType.TEXT_EVENT_STREAM_VALUE})

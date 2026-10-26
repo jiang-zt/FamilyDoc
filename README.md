@@ -7,7 +7,8 @@
 - 用户注册、登录与 JWT 鉴权
 - 同步聊天接口：`POST /chat`
 - 流式聊天接口：`POST /chat/stream`
-- SSE 长连接通道：`GET /sse/connect`
+- 聊天每轮独立 SSE：`POST /chat/stream`，JSON 事件 `delta / done / failed`，完成后关闭响应
+- 独立 SSE 演示通道：`GET /sse/connect`（聊天页面不再使用）
 - 聊天记录查询与清空：`GET /chat/records`、`DELETE /chat/records`
 - 会话指标落库：`firstTokenMs`、`totalMs`、`avgTokenIntervalMs`、`outputTokens`
 - Mock 模式联调与压测支持
@@ -21,7 +22,7 @@
 
 ## 测试模块
 
-- `ai-family-doctor-server/tools/llm_smoke.sh`：端到端冒烟测试，覆盖登录、同步聊天、SSE 建连和流式触发
+- `ai-family-doctor-server/tools/llm_smoke.sh`：端到端冒烟测试，覆盖登录、同步聊天和独立流式 POST
 - `ai-family-doctor-server/tools/jmeter/llm_chat_test.jmx`：JMeter 并发压测脚本，主要用于非流式接口
 - `ai-family-doctor-api-test`：独立接口测试工程，用于认证、聊天、SSE 等接口回归验证
 
@@ -129,9 +130,10 @@ http://<your-host>:5500/pages/entry.html
 
 ### 2. SSE 无法正常收到流式消息
 
-- 确认是否先建立 `GET /sse/connect`
-- 确认 `token` 是否有效、`userId` 是否与当前登录用户一致
-- 检查浏览器 `Network` 面板中 SSE 请求是否保持 `pending`
+- 聊天页面通过 fetch POST 直接读取 `/chat/stream`，无需预先建立连接
+- 确认 Authorization 中的 token 有效，并检查事件流响应类型
+- 请求应在生成期间保持 pending，收到 `done` 或 `failed` 后关闭；无终止事件的断流表示结果未确认
+- 异步线程池和超时参数位于 `chat.stream`，线程池繁忙时返回 503
 
 ### 3. 压测时看不到真实模型性能
 

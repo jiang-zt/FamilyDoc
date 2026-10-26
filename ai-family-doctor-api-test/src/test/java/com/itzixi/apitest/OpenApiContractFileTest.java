@@ -34,6 +34,7 @@ class OpenApiContractFileTest {
                         "/auth/me",
                         "/auth/chat-metrics",
                         "/chat",
+                        "/chat/stream",
                         "/chat/records",
                         "/sse/connect",
                         "/sse/getOnlineCounts"

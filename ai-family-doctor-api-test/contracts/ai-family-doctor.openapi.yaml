@@ -171,7 +171,13 @@ paths:
   /chat/stream:
     post:
       tags: [Chat]
-      summary: Send a streaming chat message through SSE side channel.
+      summary: Generate one answer on a request-scoped SSE response.
+      description: >-
+        Use fetch POST with a bearer token. No /sse/connect request is needed.
+        Each event data is JSON with requestId. delta additionally has text;
+        done is sent after the complete turn is saved; failed has code and message.
+        The response closes after a terminal event. EOF without a terminal event
+        means the outcome is unconfirmed. No automatic replay is supported.
       requestBody:
         required: true
         content:
@@ -180,11 +186,26 @@ paths:
               $ref: '#/components/schemas/ChatRequest'
       responses:
         '200':
-          description: Accepted by server.
+          description: Zero or more delta events followed by done or failed, then EOF.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: |
+                event: delta
+                data: {"requestId":"request-uuid","text":"Hello"}
+
+                event: done
+                data: {"requestId":"request-uuid"}
+
         '400':
           description: Message is blank.
         '401':
           description: Missing or invalid token.
+        '409':
+          description: This user already has an active generation.
+        '503':
+          description: The bounded generation executor is full.
   /chat/records:
     get:
       tags: [Chat]
