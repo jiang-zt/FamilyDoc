@@ -20,12 +20,12 @@ class ChatAsyncTest {
             thread.set(Thread.currentThread().getName());
             called.countDown();
             return null;
-        }).when(service).chatStream(eq("alice"), eq("hi"), isNull());
+        }).when(service).chatStream(eq("alice"), eq(new com.itzixi.context.PreparedChat("hi",java.util.List.of())), isNull());
         try (var context = new AnnotationConfigApplicationContext()) {
             context.registerBean(ChatService.class, () -> service);
             context.register(ChatAsyncConfig.class, ChatStreamWorker.class);
             context.refresh();
-            context.getBean(ChatStreamWorker.class).generate("alice", "hi", null);
+            context.getBean(ChatStreamWorker.class).generate("alice", new com.itzixi.context.PreparedChat("hi",java.util.List.of()), null);
             assertThat(called.await(3, TimeUnit.SECONDS)).isTrue();
             assertThat(thread.get()).startsWith("chat-stream-");
         }

@@ -1,10 +1,7 @@
 package com.itzixi.stream;
-
 import com.itzixi.service.impl.ChatServiceImpl;
-import com.itzixi.service.impl.ChatTurnSaver;
-import com.itzixi.service.ChatRecordService;
-import com.itzixi.service.ChatMetricService;
-import com.itzixi.scoring.MedicalAnswerScorer;
+import com.itzixi.service.impl.ChatMetricRecorder;
+import com.itzixi.context.PreparedChat;
 import com.itzixi.utils.DashscopeChatClient;
 import com.itzixi.utils.PromptLoader;
 import org.junit.jupiter.api.Test;
@@ -16,82 +13,63 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 class ChatStreamTest {
     final DashscopeChatClient client = mock(DashscopeChatClient.class);
-    final ChatTurnSaver saver = mock(ChatTurnSaver.class);
+    final ChatMetricRecorder recorder = mock(ChatMetricRecorder.class);
     final ChatServiceImpl service = new ChatServiceImpl();
     final RecordingEmitter emitter = new RecordingEmitter();
     final AtomicBoolean released = new AtomicBoolean();
     final ChatStreamSession session = new ChatStreamSession(emitter, () -> released.set(true));
-
+    final PreparedChat input = new PreparedChat("hi",List.of());
     ChatStreamTest() {
-        ReflectionTestUtils.setField(service, "dashscopeChatClient", client);
-        ReflectionTestUtils.setField(service, "chatTurnSaver", saver);
-        ReflectionTestUtils.setField(service, "chatRecordService", mock(ChatRecordService.class));
-        ReflectionTestUtils.setField(service, "chatMetricService", mock(ChatMetricService.class));
-        ReflectionTestUtils.setField(service, "medicalAnswerScorer", mock(MedicalAnswerScorer.class));
-        ReflectionTestUtils.setField(service, "promptLoader", mock(PromptLoader.class));
-        ReflectionTestUtils.setField(service, "streamTimeoutMs", 1000L);
-        when(((PromptLoader) ReflectionTestUtils.getField(service, "promptLoader")).getSystemPrompt()).thenReturn("system");
+        ReflectionTestUtils.setField(service,"dashscopeChatClient",client);
+        ReflectionTestUtils.setField(service,"metricRecorder",recorder);
+        PromptLoader prompt=mock(PromptLoader.class); when(prompt.getSystemPrompt()).thenReturn("system");
+        ReflectionTestUtils.setField(service,"promptLoader",prompt);
+        ReflectionTestUtils.setField(service,"streamTimeoutMs",1000L);
     }
-
-    @Test void savesBeforeDoneAndKeepsWhitespace() throws Exception {
-        when(client.stream(any())).thenReturn(Flux.just("你好", " ", "世界"));
-        doAnswer(invocation -> { assertThat(emitter.wire()).doesNotContain("event:done"); return null; })
-            .when(saver).saveCompletedTurn("alice", "hi", "你好 世界");
-        service.chatStream("alice", "hi", session);
-        verify(saver).saveCompletedTurn("alice", "hi", "你好 世界");
-        assertThat(emitter.wire()).contains("event:delta", "event:done").doesNotContain("event:failed");
-        assertThat(emitter.completed).isTrue();
-        assertThat(released).isTrue();
+    @Test void successEmitsDoneAndKeepsWhitespace() {
+        when(client.stream(any())).thenReturn(Flux.just("你好"," ","世界"));
+        service.chatStream("alice",input,session);
+        assertThat(emitter.wire()).contains("event:delta","event:done").doesNotContain("event:failed");
+        verify(recorder).record(argThat(m -> "SUCCESS".equals(m.getStatus()) && m.getRequestId().equals(session.requestId())),eq(List.of()),eq("你好 世界"));
+        assertThat(released).isTrue(); assertThat(emitter.completed).isTrue();
     }
-    @Test void emptyAnswerFailsWithoutSaving() {
+    @Test void emptyAnswerFailsAndRecordsQuestion() {
         when(client.stream(any())).thenReturn(Flux.empty());
-        service.chatStream("alice", "hi", session);
+        service.chatStream("alice",input,session);
         assertThat(emitter.payloads.toString()).contains("EMPTY_RESPONSE");
-        assertThat(emitter.wire()).contains("event:failed").doesNotContain("event:done");
-        verifyNoInteractions(saver);
-        assertThat(released).isTrue();
+        verify(recorder).record(argThat(m -> "FAILED".equals(m.getStatus()) && "hi".equals(m.getQuestion())),eq(List.of()),eq(""));
     }
-    @Test void saveFailureCannotBecomeDone() {
-        when(client.stream(any())).thenReturn(Flux.just("answer"));
-        doThrow(new IllegalStateException("database")).when(saver).saveCompletedTurn(any(), any(), any());
-        service.chatStream("alice", "hi", session);
-        assertThat(emitter.payloads.toString()).contains("SAVE_FAILED");
-        assertThat(emitter.wire()).doesNotContain("event:done");
-    }
-    @Test void modelFailureClosesAndReleases() {
+    @Test void modelFailureDoesNotExposeSecretAndRecordsFailure() {
         when(client.stream(any())).thenReturn(Flux.error(new IllegalStateException("secret")));
-        service.chatStream("alice", "hi", session);
+        service.chatStream("alice",input,session);
         assertThat(emitter.payloads.toString()).contains("MODEL_ERROR").doesNotContain("secret");
-        verifyNoInteractions(saver);
-        assertThat(emitter.completed).isTrue();
+        verify(recorder).record(argThat(m -> "FAILED".equals(m.getStatus())),eq(List.of()),eq(""));
         assertThat(released).isTrue();
     }
-    @Test void cancellationStopsUpstreamAndDoesNotSave() {
-        when(client.stream(any())).thenReturn(Flux.<String>never().doOnSubscribe(s -> session.cancel()));
-        service.chatStream("alice", "hi", session);
-        verifyNoInteractions(saver);
+    @Test void cancelledPartialAnswerIsRecordedWithoutSuccess() {
+        when(client.stream(any())).thenReturn(Flux.just("partial").doOnNext(v -> session.cancel()));
+        service.chatStream("alice",input,session);
         assertThat(emitter.wire()).doesNotContain("event:done");
+        verify(recorder).record(argThat(m -> "CANCELLED".equals(m.getStatus())),eq(List.of()),anyString());
         assertThat(released).isTrue();
     }
-    @Test void timeoutCancelsUpstreamAndFails() {
-        ReflectionTestUtils.setField(service, "streamTimeoutMs", 30L);
-        AtomicBoolean disposed = new AtomicBoolean();
-        when(client.stream(any())).thenReturn(Flux.<String>never().doOnCancel(() -> disposed.set(true)));
-        service.chatStream("alice", "hi", session);
-        assertThat(disposed).isTrue();
-        assertThat(emitter.payloads.toString()).contains("MODEL_TIMEOUT");
-        verifyNoInteractions(saver);
-        assertThat(released).isTrue();
-    }
-    @Test void sendFailureCancelsWithoutSaving() {
-        emitter.disconnect = true;
+    @Test void sendFailureCancelsAndReleases() {
+        emitter.disconnect=true;
         when(client.stream(any())).thenReturn(Flux.just("answer"));
-        service.chatStream("alice", "hi", session);
-        verifyNoInteractions(saver);
+        service.chatStream("alice",input,session);
+        verify(recorder).record(argThat(m -> "CANCELLED".equals(m.getStatus())),eq(List.of()),eq("answer"));
         assertThat(released).isTrue();
+    }
+    @Test void failedNotificationDisconnectDoesNotEraseModelFailure() {
+        SseEmitter broken = new SseEmitter() {
+            @Override public void send(SseEventBuilder builder) throws IOException { throw new IOException("disconnect"); }
+        };
+        var active=new ChatStreamSession(broken,()->{});
+        when(client.stream(any())).thenReturn(Flux.error(new IllegalStateException("model")));
+        service.chatStream("alice",input,active);
+        verify(recorder).record(argThat(m -> "FAILED".equals(m.getStatus()) && "MODEL_ERROR".equals(m.getErrorCode())),eq(List.of()),eq(""));
     }
     @Test void blockedWriteDoesNotBlockCancellation() throws Exception {
         var entered = new java.util.concurrent.CountDownLatch(1);
@@ -136,14 +114,15 @@ class ChatStreamTest {
         when(client.stream(any())).thenReturn(Flux.just("answer")
                 .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()));
         try (var executor = java.util.concurrent.Executors.newSingleThreadExecutor()) {
-            var work = executor.submit(() -> service.chatStream("alice", "hi", active));
+            var work = executor.submit(() -> service.chatStream("alice", new com.itzixi.context.PreparedChat("hi",List.of()), active));
             try {
                 assertThat(entered.await(1, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
                 assertThat(freed.await(1, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                verify(recorder,timeout(500)).record(argThat(m -> "TIMEOUT".equals(m.getStatus())),eq(List.of()),anyString());
             } finally { unblock.countDown(); }
             work.get(2, java.util.concurrent.TimeUnit.SECONDS);
         }
-        verifyNoInteractions(saver);
+        verify(recorder).record(argThat(m -> "TIMEOUT".equals(m.getStatus())),eq(List.of()),anyString());
     }
     static class RecordingEmitter extends SseEmitter {
         final List<String> frames = new ArrayList<>();

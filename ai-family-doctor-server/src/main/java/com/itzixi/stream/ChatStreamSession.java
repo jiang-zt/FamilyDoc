@@ -17,25 +17,26 @@ public final class ChatStreamSession {
     private final Runnable release;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicBoolean released = new AtomicBoolean();
-    private final Sinks.Empty<Void> cancellation = Sinks.empty();
+    private final Sinks.Empty<Void> cancellation = Sinks.empty();//只能发出“完成”或“错误”信号的轻量级数据结构
     private boolean cancelled;
     private boolean terminal;
 
     public ChatStreamSession(SseEmitter emitter, Runnable release) {
         this.emitter = emitter;
         this.release = release;//释放锁的函数
-        emitter.onTimeout(this::cancel);
+        emitter.onTimeout(this::cancel);//when an async request times out
         emitter.onError(error -> cancel());
         emitter.onCompletion(this::cancel);
     }
     public synchronized boolean isCancelled() { return cancelled; }
     public Mono<Void> cancellation() { return cancellation.asMono(); }
+
     public void cancel() {
-        synchronized (this) {
-            if (terminal) return;
+        synchronized (this) {//同一个 session 内部，多个线程(Tomcat、业务、回调）可能同时触碰它的状态
+            if (terminal) return;//幂等
             cancelled = true;
         }
-        cancellation.tryEmitEmpty();
+        cancellation.tryEmitEmpty();//向下游发取消状态,取消大模型输出
     }
     public void delta(String text) {
         synchronized (this) {
@@ -44,14 +45,16 @@ public final class ChatStreamSession {
         // 网络写出不能持有取消/提交状态锁，慢客户端不应阻塞超时回调。
         send("delta", Map.of("requestId", requestId, "text", text));
     }
-    /** 序列化取消与提交：提交已经开始时，允许完成保存；不会因通知失败撤销数据。 */
-    public boolean saveAndDone(Runnable save) {
+    public String requestId() { return requestId; }
+    /** done 仅表示回答生成完成；历史由客户端保存。 */
+    public boolean done() { return done(() -> {}); }
+    public boolean done(Runnable beforeNotify) {
         synchronized (this) {
             if (cancelled || terminal) return false;
-            save.run();
             terminal = true;
         }
-        send("done", Map.of("requestId", requestId));
+        beforeNotify.run();
+        send("done", Map.of("requestId",requestId));
         return true;
     }
     public void failed(String code, String message) {
@@ -70,7 +73,7 @@ public final class ChatStreamSession {
             throw new StreamDisconnectedException(ex);
         }
     }
-    /** 超时后先释放业务占用，再尽力通知客户端；不能依赖网络写出完成。 */
+    /** 模型超时后先释放业务占用，再尽力通知客户端；不能依赖网络写出完成。 */
     public void releaseGeneration() {
         if (released.compareAndSet(false, true)) release.run();
     }

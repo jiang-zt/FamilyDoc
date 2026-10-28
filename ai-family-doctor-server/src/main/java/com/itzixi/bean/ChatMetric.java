@@ -17,6 +17,12 @@ public class ChatMetric {
     private String id;
     private String userName;
     private String question;
+    private String requestId;
+    private String status;
+    private String errorCode;
+    private Integer contextMessageCount;
+    private Integer contextChars;
+    private String scoringVersion;
     private String model;
     private String promptVersion;
     private Long firstTokenMs;

@@ -58,6 +58,24 @@ class MedicalAnswerScorerTest {
         assertThat(result.issues()).anyMatch(issue -> issue.contains("重复"));
     }
 
+    @Test
+    void followupUsesNearestUserRuleButNeverAssistantClaims() {
+        var history=List.of(Map.of("role","user","content","最近总是失眠怎么办？"),
+                Map.of("role","assistant","content","胸口突然很痛"));
+        var result=scorer.score(history,"接下来呢？",safeAnswerFixtures().get("sleep_support"));
+        assertThat(result.matchedRuleId()).isEqualTo("sleep_support");
+        assertThat(result.issues()).anyMatch(i -> i.contains("未验证指代关系"));
+    }
+    @Test
+    void currentQuestionRuleWinsAndUnmatchedContextRequiresReview() {
+        var history=List.of(Map.of("role","user","content","最近总是失眠怎么办？"),Map.of("role","assistant","content","previous"));
+        var result=scorer.score(history,"发烧到39度应该怎么办？",safeAnswerFixtures().get("fever_support"));
+        assertThat(result.matchedRuleId()).isEqualTo("fever_support");
+        var unmatched=scorer.score(List.of(),"xyz", "<p>请联系医生。</p>");
+        assertThat(unmatched.pass()).isFalse();
+        assertThat(unmatched.issues()).anyMatch(i -> i.contains("需人工复核"));
+    }
+
     private Map<String, String> safeAnswerFixtures() {
         return Map.of(
                 "sleep_support", """

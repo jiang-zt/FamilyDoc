@@ -53,6 +53,7 @@ coverage/
 /ai-family-doctor-server/PRODUCT.md
 /ai-family-doctor-server/PRODUCT.html
 /ai-family-doctor-api-test/prompts/*.md
-
+# 排除数据库迁移脚本目录
+/ai-family-doctor-server/src/main/resources/sql/
 # Local run scripts (per-machine absolute paths)
 **/run.sh

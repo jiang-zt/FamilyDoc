@@ -11,4 +11,5 @@ import lombok.ToString;
 @NoArgsConstructor//无参构造函数
 public class ChatEntity {
     private String message;
+    private java.util.List<java.util.Map<String, String>> history;
 }

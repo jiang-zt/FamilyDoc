@@ -1,9 +1,7 @@
 package com.itzixi.service;
-
+import com.itzixi.context.PreparedChat;
+import com.itzixi.stream.ChatStreamSession;
 public interface ChatService {
-
-    String chat(String userName, String msg);//直接返回
-
-    void chatStream(String userName, String message, com.itzixi.stream.ChatStreamSession session);//流式sse推送
-
+    String chat(String userName, PreparedChat input);
+    void chatStream(String userName, PreparedChat input, ChatStreamSession session);
 }

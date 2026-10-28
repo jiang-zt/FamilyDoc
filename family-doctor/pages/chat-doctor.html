@@ -43,11 +43,12 @@
             </block>
 
         </div>
+        <div style="font-size:12px;padding:6px">历史仅保留在当前页面，刷新会清空；问题全文与评分指标由服务端保存。</div>
         <div class="chat-input">
             <input type="text" id="user-input" value="" placeholder="请输入内容..." @keydown="handleKeyDown($event)">
             <button id="btn-chat" :disabled="isGenerating" @click="doChat()">发送</button>
             <button v-if="isGenerating" @click="cancelChat()">停止</button>
-            <button id="btn-clear" :disabled="isGenerating" @click="clearChatRecords()">清空记录</button>
+            <button id="btn-clear" :disabled="isGenerating" @click="clearChatRecords()">清空本地对话</button>
         </div>
     </div>
 
@@ -65,6 +66,7 @@
 <script src="../../js/request.js"></script>
 <script src="../../js/apis/admin/authApi.js"></script>
 <script src="../../js/chatStream.js"></script>
+<script src="../../js/chatContext.js"></script>
 <script src="../../js/apis/admin/doctorApi.js"></script>
 
 <script>
@@ -78,6 +80,8 @@
 			return {
                 currentUserName: null,
                 chatList: [],
+                history: [],
+                contextVersion: 0,
                 loginError: null,
                 streamController: null,
                 beforeUnloadHandler: null,
@@ -116,7 +120,7 @@
 
                 authApi.me().then((result) => {
                     this.currentUserName = result.username;
-                    this.getChatRecords();
+                    this.resetLocalConversation();
                 }).catch((err) => {
                     this.cancelChat();
                     cookieUtils.removeUserInfo();
@@ -138,7 +142,7 @@
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
-                    this.getChatRecords();
+                    this.resetLocalConversation();
                 }).catch((err) => {
                     this.loginError = '登录失败，请检查用户名或密码';
                 });
@@ -157,7 +161,7 @@
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
                     this.currentUserName = result.user.username;
-                    this.getChatRecords();
+                    this.resetLocalConversation();
                 }).catch((err) => {
                     this.loginError = '注册失败，用户名可能已存在';
                 });
@@ -172,36 +176,17 @@
                 window.location.href = '/pages/entry.html';
             },
 
-            clearChatRecords() {
-                var currentUserName = this.currentUserName;
-                if (currentUserName == null || currentUserName == '') {
-                    alert('请先登录');
-                    return;
-                }
-                if (this.isGenerating) {
-                    alert('正在生成中，不能清空记录');
-                    return;
-                }
-                if (!confirm('确认清空当前用户聊天记录？')) {
-                    return;
-                }
-                doctorApi.deleteRecords().then((result) => {
-                    this.chatList = [];
-                }).catch((err) => {
-                    alert('清空失败，请稍后重试');
-                });
+            resetLocalConversation() {
+                this.cancelChat();
+                this.streamController = null;
+                this.isGenerating = false;
+                this.contextVersion++;
+                this.history = [];
+                this.chatList = [];
             },
-
-            getChatRecords() {
-                var me = this;
-                doctorApi.getRecords().then((result) => {
-                    console.log(result);
-                    this.chatList = result;
-
-                    me.scrollToBottom();
-                }).catch((err) => {
-                    
-                });;
+            clearChatRecords() {
+                if (this.isGenerating) { alert('请先停止生成'); return; }
+                if (confirm('确认清空本地对话？问题与评分指标仍保留。')) this.resetLocalConversation();
             },
 
             handleKeyDown(event) {
@@ -216,10 +201,13 @@
             async doChat() {
                 if (this.isGenerating) return;
                 const input = document.getElementById('user-input');
-                const message = input.value.trim();
-                if (!message) return;
+                const message = input.value;
+                if (!message.trim()) return;
+                if (message.length > 8000) { alert('问题不能超过 8000 字符'); return; }
                 if (!this.currentUserName) { alert('请先登录'); return; }
                 this.isGenerating = true;
+                const history = window.chatContext.snapshot(this.history);
+                const version = this.contextVersion;
                 const controller = new AbortController();
                 this.streamController = controller;
                 const bot = { content: '', chatType: 'bot', failed: false, statusText: '' };
@@ -229,9 +217,13 @@
                 this.scrollToBottom();
                 let terminal = false;
                 try {
-                    await doctorApi.doChat({ message }, event => {
+                    await doctorApi.doChat({ message, history }, event => {
+                        if (version !== this.contextVersion) return;
                         if (event.event === 'delta') bot.content += event.data.text;
-                        if (event.event === 'done') terminal = true;
+                        if (event.event === 'done') {
+                            terminal = true;
+                            this.history = window.chatContext.append(history, message, bot.content);
+                        }
                         if (event.event === 'failed') {
                             terminal = true;
                             bot.failed = true;
@@ -243,7 +235,7 @@
                     if (!terminal) {
                         bot.failed = true;
                         bot.statusText = error.name === 'AbortError'
-                            ? '已停止生成，结果未确认，可刷新查看记录'
+                            ? '已停止，未完成内容不会加入后续上下文'
                             : (error.message || '连接中断，结果未确认');
                     }
                 } finally {

@@ -1,6 +1,7 @@
 package com.itzixi.controller;
 
 import com.itzixi.bean.ChatEntity;
+import com.itzixi.context.ChatContextNormalizer;
 import com.itzixi.service.ChatStreamWorker;
 import com.itzixi.stream.ChatStreamSession;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,9 +33,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChatController {
 
     @Resource
+    private ChatContextNormalizer contextNormalizer;
+
+    @Resource
     private ChatStreamWorker chatStreamWorker;
 
-    @Value("${chat.stream.emitter-timeout-ms:180000}")
+    @Value("${chat.stream.emitter-timeout-ms:180000}")//3min
     private long emitterTimeoutMs;
 
     @Resource
@@ -55,31 +59,24 @@ public class ChatController {
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        String message = chatEntity.getMessage();
-        if (message == null || message.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息不能为空");//400
-        }
-        return chatService.chat(authUser, message.trim());
+        return chatService.chat(authUser, contextNormalizer.prepare(chatEntity));
     }
-
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)//流式返回
+    //手动设置 SSE 相关的 header 或关闭缓冲需要response
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@RequestBody ChatEntity chatEntity, HttpServletRequest request, HttpServletResponse response) {
         String authUser = authHelper.requireUsername(request);
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");//401
         }
-        String message = chatEntity.getMessage();
-        if (message == null || message.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息不能为空");
-        }
+        var input = contextNormalizer.prepare(chatEntity);
         //统一采用用户名称记录
         if (!chatGenerationGuard.tryAcquire(authUser)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "已有生成任务进行中，请稍候");
         }
-        SseEmitter emitter = new SseEmitter(emitterTimeoutMs);//创建连接
-        ChatStreamSession session = new ChatStreamSession(emitter, () -> chatGenerationGuard.release(authUser));//封装会话
+        SseEmitter emitter = new SseEmitter(emitterTimeoutMs);//创建连接设置超时时间
+        ChatStreamSession session = new ChatStreamSession(emitter, () -> chatGenerationGuard.release(authUser));//封装会话+回调函数
         try {
-            chatStreamWorker.generate(authUser, message.trim(), session);//提交异步任务
+            chatStreamWorker.generate(authUser, input, session);//提交异步任务
         } catch (TaskRejectedException ex) {//队列满，任务直接拒绝
             session.cancel();
             session.close();
@@ -89,9 +86,9 @@ public class ChatController {
             session.close();
             throw ex;
         }
-        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");
-        response.setHeader("X-Accel-Buffering", "no");
-        return emitter;//返回浏览器解析流
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache");//响应不被缓存
+        response.setHeader("X-Accel-Buffering", "no");//控制 Nginx 的反向代理缓冲行为
+        return emitter;//response.body:SseEmitter（写数据 + 控制 complete/超时）
     }
 
     @GetMapping("/records")//获取聊天记录

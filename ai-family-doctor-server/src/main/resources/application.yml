@@ -41,4 +41,5 @@ chat:
     emitter-timeout-ms: 180000
   context:
     max-turns: 10        # 最近 10 轮完整问答（初始值）
+    max-question-chars: 8000
     max-chars: 12000     # 历史上下文最多 12000 字符

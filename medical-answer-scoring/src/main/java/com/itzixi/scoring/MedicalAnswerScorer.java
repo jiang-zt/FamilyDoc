@@ -97,6 +97,28 @@ public class MedicalAnswerScorer {
         );
     }
 
+    /** 当前问题优先；未命中时参考最近用户问题的规则。规则结果不代表医学准确性。 */
+    public ScoreResult score(List<Map<String,String>> history, String question, String answer) {
+        String assessment = question;
+        boolean inherited = false;
+        if (findBestRule(normalize(safeText(question))) == null) {
+            for (int i=history.size()-1; i>=0; i--) {
+                var item = history.get(i);
+                if ("user".equals(item.get("role")) && findBestRule(normalize(safeText(item.get("content")))) != null) {
+                    assessment = item.get("content") + "\n" + question; inherited = true; break;
+                }
+            }
+        }
+        ScoreResult result = score(assessment,answer);
+        List<String> issues = new ArrayList<>(result.issues());
+        if (inherited) issues.add("参考最近用户历史匹配规则；未验证指代关系及跨轮医学一致性");
+        else if (!history.isEmpty()) issues.add("规则评分未验证跨轮医学一致性");
+        if (result.matchedRuleId() == null) issues.add("未匹配专用规则，需人工复核");
+        return new ScoreResult(result.totalScore(),result.safetyScore(),result.factualScore(),result.coverageScore(),
+                result.semanticScore(),result.expressionScore(),result.pass() && result.matchedRuleId()!=null,
+                result.matchedRuleId(),List.copyOf(issues));
+    }
+
     //安全性得分
     private int scoreSafety(QuestionRule matchedRule,
                             String normalizedQuestion,

@@ -127,7 +127,7 @@ class SseApiTest extends ApiTestBase {
     }
 
     @Test
-    void streamChatReturnsDeltaThenDoneAndPersistsJoinedReply() throws IOException {
+    void streamChatReturnsDeltaThenDoneWithoutPersistingHistory() throws IOException {
         assumeTrue(TestConfig.chatTestsEnabled(), "Enable with -Dapi.chat.enabled=true.");
         AuthSession user = AuthSupport.registerRandomUser();
         String message = "SSE自动化测试-" + System.currentTimeMillis();
@@ -168,15 +168,7 @@ class SseApiTest extends ApiTestBase {
                 .header("Authorization", "Bearer " + user.token())
                 .when().get("/chat/records")
                 .then().statusCode(200).extract().jsonPath().getList("$");
-        assertThat(records).hasSize(2);
-        assertThat(records).anySatisfy(record -> {
-            assertThat(record.get("chatType")).isEqualTo("user");
-            assertThat(record.get("content")).isEqualTo(message);
-        });
-        assertThat(records).anySatisfy(record -> {
-            assertThat(record.get("chatType")).isEqualTo("bot");
-            assertThat(record.get("content")).isEqualTo(reply.toString());
-        });
+        assertThat(records).isEmpty(); // 聊天历史仅在客户端，指标仍独立落库。
     }
 
     private SseTestClient.Connection openSseConnection(AuthSession user) throws IOException {
