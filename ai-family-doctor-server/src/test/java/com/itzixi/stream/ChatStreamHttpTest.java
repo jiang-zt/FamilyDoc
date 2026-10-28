@@ -18,10 +18,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ChatStreamHttpTest {
     final ChatGenerationGuard guard = new ChatGenerationGuard();
     final ChatStreamWorker worker = mock(ChatStreamWorker.class);
+    final com.itzixi.traffic.TrafficRecorder recorder = mock(com.itzixi.traffic.TrafficRecorder.class);
     final AuthHelper auth = mock(AuthHelper.class);
     final MockMvc mvc;
     ChatStreamHttpTest() {
         ChatController controller = new ChatController();
+        ReflectionTestUtils.setField(controller, "trafficRecorder", recorder);
         ReflectionTestUtils.setField(controller, "contextNormalizer", new com.itzixi.context.ChatContextNormalizer());
         ReflectionTestUtils.setField(controller, "chatGenerationGuard", guard);
         ReflectionTestUtils.setField(controller, "chatStreamWorker", worker);
@@ -46,6 +48,31 @@ class ChatStreamHttpTest {
                 .contains("event:delta", "event:done", "\\n", "requestId").doesNotContain("event:failed");
         assertThat(guard.tryAcquire("alice")).isTrue();
         guard.release("alice");
+    }
+    @Test void recordingKeepsUntrimmedHistoryAndSharesRequestIdWithStream() throws Exception {
+        var body=new com.itzixi.bean.ChatEntity();body.setMessage("hi");
+        var history=new java.util.ArrayList<java.util.Map<String,String>>();
+        for(int i=0;i<12;i++) {
+            history.add(java.util.Map.of("role","user","content","q"+i));
+            history.add(java.util.Map.of("role","assistant","content","a"+i));
+        }
+        body.setHistory(history);
+        var arrival=java.time.Instant.parse("2026-10-28T01:02:03Z");
+        var initial=mvc.perform(post("/chat/stream").contentType("application/json")
+            .requestAttr(com.itzixi.traffic.TrafficRecorder.ARRIVAL_ATTRIBUTE,arrival)
+            .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(body)))
+            .andExpect(request().asyncStarted()).andReturn();
+        var id=ArgumentCaptor.forClass(String.class);
+        var original=ArgumentCaptor.forClass(com.itzixi.bean.ChatEntity.class);
+        verify(recorder).record(id.capture(),eq("alice"),original.capture(),eq(arrival));
+        assertThat(original.getValue().getHistory()).hasSize(24);
+        var prepared=ArgumentCaptor.forClass(com.itzixi.context.PreparedChat.class);
+        var session=ArgumentCaptor.forClass(ChatStreamSession.class);
+        verify(worker).generate(eq("alice"),prepared.capture(),session.capture());
+        assertThat(prepared.getValue().history()).hasSize(20);
+        assertThat(session.getValue().requestId()).isEqualTo(id.getValue());
+        session.getValue().cancel();session.getValue().close();
+        mvc.perform(asyncDispatch(initial)).andExpect(status().isOk());
     }
     @Test void rejectedTaskReturns503AndReleasesGuard() throws Exception {
         doThrow(new TaskRejectedException("full")).when(worker).generate(any(), any(), any());
@@ -73,5 +100,6 @@ class ChatStreamHttpTest {
         mvc.perform(post("/chat/stream").contentType("application/json").content("{\"message\":\"hi\"}"))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(worker);
+        verifyNoInteractions(recorder);
     }
 }

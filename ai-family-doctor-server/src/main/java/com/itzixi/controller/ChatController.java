@@ -1,6 +1,9 @@
 package com.itzixi.controller;
 
 import com.itzixi.bean.ChatEntity;
+import com.itzixi.traffic.TrafficRecorder;
+import java.time.Instant;
+import java.util.UUID;
 import com.itzixi.context.ChatContextNormalizer;
 import com.itzixi.service.ChatStreamWorker;
 import com.itzixi.stream.ChatStreamSession;
@@ -31,6 +34,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("chat")//http://localhost:8080/chat
 public class ChatController {
+
+    @Resource
+    private TrafficRecorder trafficRecorder;
 
     @Resource
     private ChatContextNormalizer contextNormalizer;
@@ -68,13 +74,18 @@ public class ChatController {
         if (authUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");//401
         }
+        // 校验通过即录制，包含随后被用户锁或线程池拒绝的请求，保留真实到达负载。
         var input = contextNormalizer.prepare(chatEntity);
+        String requestId = UUID.randomUUID().toString();
+        Object arrival = request.getAttribute(TrafficRecorder.ARRIVAL_ATTRIBUTE);
+        trafficRecorder.record(requestId,authUser,chatEntity,arrival instanceof Instant time ? time : Instant.now());
+        
         //统一采用用户名称记录
         if (!chatGenerationGuard.tryAcquire(authUser)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "已有生成任务进行中，请稍候");
         }
         SseEmitter emitter = new SseEmitter(emitterTimeoutMs);//创建连接设置超时时间
-        ChatStreamSession session = new ChatStreamSession(emitter, () -> chatGenerationGuard.release(authUser));//封装会话+回调函数
+        ChatStreamSession session = new ChatStreamSession(emitter, () -> chatGenerationGuard.release(authUser), requestId);//封装会话+回调函数
         try {
             chatStreamWorker.generate(authUser, input, session);//提交异步任务
         } catch (TaskRejectedException ex) {//队列满，任务直接拒绝

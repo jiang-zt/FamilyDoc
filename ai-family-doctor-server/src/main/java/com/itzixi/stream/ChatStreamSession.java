@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** 每次 POST 独享的响应、取消信号和清理操作，不放入全局连接池。 */
 //是一个为了保证“流式对话安全、有序、不泄漏资源”而人为抽象出来的对象
 public final class ChatStreamSession {
-    private final String requestId = UUID.randomUUID().toString();
+    private final String requestId;
     private final SseEmitter emitter;
     private final Runnable release;
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -22,6 +22,10 @@ public final class ChatStreamSession {
     private boolean terminal;
 
     public ChatStreamSession(SseEmitter emitter, Runnable release) {
+        this(emitter,release,UUID.randomUUID().toString());
+    }
+    public ChatStreamSession(SseEmitter emitter, Runnable release, String requestId) {
+        this.requestId = java.util.Objects.requireNonNull(requestId);
         this.emitter = emitter;
         this.release = release;//释放锁的函数
         emitter.onTimeout(this::cancel);//when an async request times out

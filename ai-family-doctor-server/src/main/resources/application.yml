@@ -33,6 +33,17 @@ dashscope:
     chunk-size: ${DASHSCOPE_MOCK_CHUNK_SIZE:6}
 
 chat:
+  traffic-recording:
+    enabled: ${CHAT_TRAFFIC_RECORDING_ENABLED:false}
+    directory: ${CHAT_TRAFFIC_RECORDING_DIRECTORY:./logs/traffic}
+    instance-id: ${CHAT_TRAFFIC_INSTANCE_ID:local}
+    actor-hash-key: ${CHAT_TRAFFIC_ACTOR_HASH_KEY:}
+    sample-rate: 1.0
+    queue-capacity: 256
+    max-file-bytes: 10485760
+    max-record-bytes: 524288
+    retention-days: 7
+    shutdown-timeout-ms: 5000
   stream:
     core-pool-size: 4
     max-pool-size: 8

@@ -159,3 +159,28 @@ http://<your-host>:5500/pages/entry.html
 
 - 开启 Mock 模式时，测的是服务端链路稳定性，不是真实模型推理性能
 - 如需测试模型真实表现，请关闭 Mock，结合后端 `chat_metric` 指标与抓包结果一起观察
+
+
+## 流式请求录制（JSONL）
+
+录制默认关闭，仅作用于 `POST /chat/stream`。启用前设置：
+
+```bash
+export CHAT_TRAFFIC_RECORDING_ENABLED=true
+export CHAT_TRAFFIC_ACTOR_HASH_KEY="$(openssl rand -hex 32)"
+# 可选：相对路径基于后端进程工作目录
+export CHAT_TRAFFIC_RECORDING_DIRECTORY=./logs/traffic
+export CHAT_TRAFFIC_INSTANCE_ID=local
+```
+
+然后按原有方式启动后端。多实例需使用相同的匿名化密钥才能关联同一用户；密钥不要提交到仓库。实例标识自动附加启动 UUID，各实例不会共写一个文件。
+
+每行是一个 JSON 请求样本，包含 `schemaVersion`、`sampleId`、`requestId`、UTC `recordedAt`、HMAC 用户标识 `actorKey`、`instanceId`、`method`、`path` 和 `requestBody`（原始 `message + history`）。只拷贝历史中的 role/content，不采集请求头、Token、Cookie 或账号。正文不自动脱敏，文件仍包含完整对话，需要限制访问和保留周期；支持 POSIX 的系统以 0600 创建文件。
+
+在鉴权及参数校验通过后、用户锁和生成线程池检查前采样，因此随后返回 409/503 的请求也可能被录制。校验失败或未登录的请求不录制。记录原始已验证历史，模型使用的仍是裁剪后的历史；已接受的生成请求沿用相同 requestId，可关联 SSE 和指标。拒绝的请求不保证有 SSE 或指标记录。
+
+`chat.traffic-recording` 可配置采样率（默认 1.0）、队列容量（256）、单文件上限（10 MiB）、单样本上限（512 KiB）、保留天数（7）和关闭等待（5 秒）。默认文件名为 `chat-stream-UTC日期-实例标识-启动UUID-序号.jsonl`；按 UTC 日期及实际 UTF-8 字节数滚动，保留最近 7 个 UTC 日期的数据。过期文件仅匹配录制文件命名格式；清理失败最多每分钟重试，不影响录制写入。
+
+独立单线程序列化并写文件，不占用模型线程池。队列满、超大样本、序列化或磁盘写入失败时丢弃并计数，首次和每累计 100 次丢弃输出警告；关闭时输出 accepted/written/dropped/sampledOut 汇总，并尽力排空队列。录制是尽力而为，不提供崩溃不丢失保证；磁盘故障可能留下不完整尾行。无数据库表结构变更，尚未实现回放器。
+
+录制器优化：请求线程在快照前按文本字符数做保守大小预筛查，只提前拒绝确定超限的样本；UTF-8、JSON 转义及元数据大小仍在后台精确校验，避免中文或转义字符造成误判。入队锁内不打印丢弃日志。`TrafficRecorder.stats()` 提供 `queueSize`、`queueCapacity` 和不可修改的 `droppedByReason` 快照，按 QUEUE_FULL、RECORD_TOO_LARGE、SNAPSHOT_FAILED、SERIALIZATION_FAILED、WRITE_FAILED、SHUTDOWN_TIMEOUT 分类，关闭时批量丢弃也计入对应原因。统计是弱一致观测值，不能用于原子账目核对；采样排除仍单独计入 sampledOut。
