@@ -77,6 +77,7 @@ public class ChatController {
         // 校验通过即录制，包含随后被用户锁或线程池拒绝的请求，保留真实到达负载。
         var input = contextNormalizer.prepare(chatEntity);
         String requestId = UUID.randomUUID().toString();
+        response.setHeader("X-Request-Id",requestId);
         Object arrival = request.getAttribute(TrafficRecorder.ARRIVAL_ATTRIBUTE);
         trafficRecorder.record(requestId,authUser,chatEntity,arrival instanceof Instant time ? time : Instant.now());
         

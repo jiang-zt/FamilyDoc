@@ -57,3 +57,7 @@ coverage/
 /ai-family-doctor-server/src/main/resources/sql/
 # Local run scripts (per-machine absolute paths)
 **/run.sh
+
+# Local Python tooling
+__pycache__/
+*.pyc

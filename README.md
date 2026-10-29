@@ -184,3 +184,8 @@ export CHAT_TRAFFIC_INSTANCE_ID=local
 独立单线程序列化并写文件，不占用模型线程池。队列满、超大样本、序列化或磁盘写入失败时丢弃并计数，首次和每累计 100 次丢弃输出警告；关闭时输出 accepted/written/dropped/sampledOut 汇总，并尽力排空队列。录制是尽力而为，不提供崩溃不丢失保证；磁盘故障可能留下不完整尾行。无数据库表结构变更，尚未实现回放器。
 
 录制器优化：请求线程在快照前按文本字符数做保守大小预筛查，只提前拒绝确定超限的样本；UTF-8、JSON 转义及元数据大小仍在后台精确校验，避免中文或转义字符造成误判。入队锁内不打印丢弃日志。`TrafficRecorder.stats()` 提供 `queueSize`、`queueCapacity` 和不可修改的 `droppedByReason` 快照，按 QUEUE_FULL、RECORD_TOO_LARGE、SNAPSHOT_FAILED、SERIALIZATION_FAILED、WRITE_FAILED、SHUTDOWN_TIMEOUT 分类，关闭时批量丢弃也计入对应原因。统计是弱一致观测值，不能用于原子账目核对；采样排除仍单独计入 sampledOut。
+
+
+## 独立环境与单条回放
+
+已提供本机 Mock 回放环境及单条请求闭环。初始化、启动、执行和代码阅读顺序见 [tools/replay/README.md](tools/replay/README.md)。回放库为 `ai_family_doctor_replay`，默认端口 18080，使用独立账号/JWT，关闭录制；默认测试不会执行真实回放。此阶段不支持批量、倍速或自动重试。

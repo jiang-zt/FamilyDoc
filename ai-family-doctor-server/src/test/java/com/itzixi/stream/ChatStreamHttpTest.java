@@ -39,6 +39,7 @@ class ChatStreamHttpTest {
         var captor = ArgumentCaptor.forClass(ChatStreamSession.class);
         verify(worker).generate(eq("alice"), eq(new com.itzixi.context.PreparedChat("hi",java.util.List.of())), captor.capture());
         var session = captor.getValue();
+        assertThat(initial.getResponse().getHeader("X-Request-Id")).isEqualTo(session.requestId());
         session.delta("你好\n世界");
         session.done();
         session.close();

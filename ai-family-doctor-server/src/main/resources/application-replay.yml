@@ -1,0 +1,26 @@
+server:
+  address: 127.0.0.1
+  port: ${REPLAY_PORT:18080}
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${REPLAY_DB_HOST:127.0.0.1}:${REPLAY_DB_PORT:3306}/ai_family_doctor_replay?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=3000&socketTimeout=5000
+    username: family_replay
+    password: ${REPLAY_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 4
+      connection-timeout: 5000
+  sql:
+    init:
+      mode: never
+auth:
+  jwt:
+    secret: ${REPLAY_JWT_SECRET}
+  admin:
+    username: replayad
+dashscope:
+  mock:
+    enabled: true
+chat:
+  traffic-recording:
+    enabled: false
