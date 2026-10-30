@@ -1,105 +1,26 @@
 # AI Family Doctor API Test
 
-这是一个独立接口测试项目，用来测试旁边的 `ai-family-doctor-server` 服务。
+## 1. 作用
 
-先沉淀了一套稳定的接口测试骨架：
+项目的接口验证与回归测试模块，用于检查账号、聊天和流式响应等功能是否符合预期，并通过隔离回放复现请求，辅助评估功能修改的影响。
 
-- 用 REST Assured 编写接口自动化测试
-- 用 JUnit 5 管理测试执行
-- 用手写 OpenAPI 合约描述被测接口
-- 为后续 Schemathesis、AI 失败分析、CI 报告预留结构
+## 2. 负责工作
 
-## 项目结构
+- 验证注册、登录、身份认证、权限限制及接口参数校验。
+- 校验手写 OpenAPI 合约文件，使用公共评分规则开展医疗问答评测。
+- 读取录制的 JSONL 样本，在独立 Mock 环境中回放单条流式请求，核对 SSE 响应与数据库指标，生成结果报告。
 
-```text
-ai-family-doctor-api-test
-├── contracts
-│   └── ai-family-doctor-server.openapi.yaml
-├── src/test/java/com/itzixi/apitest
-│   ├── AuthApiTest.java
-│   ├── ChatApiTest.java
-│   ├── OpenApiContractFileTest.java
-│   ├── SseApiTest.java
-│   └── support
-└── pom.xml
-```
+回放通过表示请求链路与指标核对通过，不代表回答具有医学正确性；当前尚未支持批量回放和负载模拟。
 
-## 先跑测试工程本身
+## 3. 结构介绍
 
-这个命令只校验测试工程能不能编译、OpenAPI 合约文件是否存在，不会请求业务服务：
+| 内容 | 职责 |
+| --- | --- |
+| `contracts/` | 保存手写 OpenAPI 接口合约 |
+| `src/test/java/com/itzixi/apitest/` | 账号、聊天、旧 SSE 演示接口及合约文件测试，医疗问答规则评测 |
+| `src/test/java/com/itzixi/apitest/support/` | 公共测试配置、认证辅助、SSE 客户端和测试数据清理 |
+| `src/test/java/com/itzixi/apitest/replay/` | 样本校验、单条回放编排、流式响应解析、指标核对与报告生成 |
+| `src/test/resources/replay/` | 合成的回放演示样本 |
+| `tools/replay/` | 独立回放环境所需的数据库结构、环境准备及回放入口脚本 |
 
-```bash
-mvn test
-```
-
-## 启动被测服务
-
-先启动 `ai-family-doctor-server`，默认测试地址是：
-
-```text
-http://localhost:8080
-```
-
-如果你的服务端口不是 8080，运行测试时用 `-Dapi.baseUrl` 覆盖。
-
-## 执行真实接口测试
-
-业务服务启动后，在本项目目录执行：
-
-```bash
-mvn test -Dapi.tests.enabled=true -Dapi.baseUrl=http://localhost:8080
-```
-
-当前覆盖的接口场景：
-
-- 注册成功
-- 登录成功
-- 获取当前登录用户
-- 空用户名/密码注册返回 400
-- 重复注册返回 409
-- 未登录访问受保护接口返回 401
-- 普通用户访问管理员接口返回 403
-- 聊天接口未登录返回 401
-- 已登录但消息为空返回 400
-- SSE 在线人数接口返回数字
-- SSE 连接未登录返回 401
-
-## 聊天成功用例
-
-`/chat` 成功用例会调用模型层，所以默认关闭。
-
-如果 `ai-family-doctor-server` 已经开启 DashScope mock，或你已经配置好真实模型 Key，可以打开：
-
-```bash
-mvn -pl ai-family-doctor-api-test -am test \
-  -Dapi.tests.enabled=true \
-  -Dapi.chat.enabled=true \
-  -Dapi.baseUrl=http://localhost:8080
-```
-
-## 医疗问答 Eval 评测
-
-`medical-answer-scoring/src/main/resources/scoring/medical-eval-cases.yml` 维护了一组医疗问答评测用例。每条用例包含：
-
-- `question`：待评测问题
-- `rule_id`：期望命中的共享评分规则 ID
-
-评分规则与评测用例都由公共模块 `medical-answer-scoring` 维护。线上 `accuracy_score`、评分器单测和离线 Eval 使用同一套规则与用例入口，避免重复维护。
-
-Eval 会真实调用 `/chat`，用于评估模型回答质量，所以默认关闭。确认 `ai-family-doctor-server` 已配置真实模型 Key 后执行：
-
-```bash
-mvn -pl ai-family-doctor-api-test -am test \
-  -Dapi.tests.enabled=true \
-  -Dapi.eval.enabled=true \
-  -Dapi.baseUrl=http://localhost:8080
-```
-
-说明：
-
-- Mock 模式适合回归接口链路，不适合评测真实回答质量。
-- Eval 复用服务端同一套轻量规则评分，重点覆盖医疗安全底线；后续可继续接入语义相似度或 LLM Judge。
-
-
-
-
+医疗问答评分规则与评测用例由公共模块 `medical-answer-scoring` 统一维护。
