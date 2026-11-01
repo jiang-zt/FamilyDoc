@@ -14,7 +14,6 @@ import com.itzixi.utils.JwtUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -45,8 +44,8 @@ public class AuthController {
     @Resource
     private ChatMetricService chatMetricService;
 
-    @Value("${auth.admin.username}")
-    private String adminUsername;
+    @Resource
+    private com.itzixi.security.PublicProtection protection;
 
     @PostMapping("/register")
     public AuthResponse register(@RequestBody AuthRegisterRequest request) {
@@ -79,6 +78,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名格式不合法");
         }
 
+        protection.checkLoginAccount(username);
         AppUser user = appUserService.authenticate(username, request.getPassword().trim());
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");//401
@@ -105,7 +105,7 @@ public class AuthController {
         if (username == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        if (!username.equals(adminUsername)) {
+        if (!isAdministrator(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");//403
         }
         return appUserService.listAll().stream()
@@ -119,7 +119,7 @@ public class AuthController {
         if (username == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        if (!username.equals(adminUsername)) {
+        if (!isAdministrator(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
         }
         return appUserService.deleteById(id);
@@ -131,7 +131,7 @@ public class AuthController {
         if (username == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        if (!username.equals(adminUsername)) {
+        if (!isAdministrator(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
         }
         return chatRecordService.listChatUsers();
@@ -145,10 +145,15 @@ public class AuthController {
         if (username == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未登录");
         }
-        if (!username.equals(adminUsername)) {
+        if (!isAdministrator(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权限");
         }
         return chatMetricService.listRecentMetrics(userName, limit);
+    }
+
+    private boolean isAdministrator(String username) {
+        AppUser user = appUserService.findByUsername(username);
+        return user != null && user.isAdministrator();
     }
 
     private AuthResponse buildAuthResponse(AppUser user) {

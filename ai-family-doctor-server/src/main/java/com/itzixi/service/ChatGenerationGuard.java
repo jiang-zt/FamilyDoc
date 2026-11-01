@@ -15,13 +15,17 @@ public class ChatGenerationGuard {
 
     private final ConcurrentHashMap<String, Boolean> generating = new ConcurrentHashMap<>();
 
+    @org.springframework.beans.factory.annotation.Value("${protection.chat-max-concurrent:8}")
+    private int maxConcurrent = 8;
+
     /** 尝试占用：成功返回 true；已被占用返回 false */
-    public boolean tryAcquire(String userName) {
+    public synchronized boolean tryAcquire(String userName) {
+        if (generating.size() >= maxConcurrent) return false;
         return generating.putIfAbsent(userName, Boolean.TRUE) == null;
     }
 
     /** 释放占用（务必在 finally 中调用，覆盖模型异常/DB 异常等退出路径） */
-    public void release(String userName) {
+    public synchronized void release(String userName) {
         generating.remove(userName);
     }
 }

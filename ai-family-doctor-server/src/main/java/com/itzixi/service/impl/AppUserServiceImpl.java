@@ -18,8 +18,20 @@ public class AppUserServiceImpl implements AppUserService {
     @Resource
     private AppUserMapper appUserMapper;
 
+    @org.springframework.beans.factory.annotation.Value("${auth.admin.username:admin}")
+    private String adminUsername = "admin";
+
     @Override
     public AppUser register(String username, String password) {
+        if (username.equalsIgnoreCase(adminUsername) || username.equalsIgnoreCase("admin")) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "该用户名为系统保留名称");
+        }
+        int bytes = password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        if (password.length() < 8 || bytes > 72) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "密码至少 8 个字符且 UTF-8 编码不超过 72 字节");
+        }
         AppUser existing = findByUsername(username);
         if (existing != null) {
             return null;
@@ -30,7 +42,11 @@ public class AppUserServiceImpl implements AppUserService {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        appUserMapper.insert(user);
+        try {
+            appUserMapper.insert(user);
+        } catch (org.springframework.dao.DuplicateKeyException conflict) {
+            return null;
+        }
         return user;
     }
 

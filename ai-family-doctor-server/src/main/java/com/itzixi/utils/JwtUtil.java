@@ -20,6 +20,13 @@ public class JwtUtil {
     @Value("${auth.jwt.expire-minutes}")
     private long expireMinutes;//120
 
+    public void validateProductionSecret() {
+        if (secret == null || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32
+                || secret.toLowerCase(java.util.Locale.ROOT).contains("change-this-secret")) {
+            throw new IllegalStateException("生产 JWT 密钥必须至少 32 字节且不能使用默认占位值");
+        }
+    }
+
     public String createToken(String userId, String username) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         Instant now = Instant.now();

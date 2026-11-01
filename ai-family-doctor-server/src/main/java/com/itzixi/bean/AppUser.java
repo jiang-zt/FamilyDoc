@@ -15,6 +15,7 @@ public class AppUser {
     private String id;
     private String username;
     private String passwordHash;
+    private boolean administrator;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

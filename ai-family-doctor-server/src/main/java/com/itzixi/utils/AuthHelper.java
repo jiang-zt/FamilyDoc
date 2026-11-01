@@ -9,8 +9,10 @@ public class AuthHelper {
 
     private final JwtUtil jwtUtil;
 
-    public AuthHelper(JwtUtil jwtUtil) {
+    private final com.itzixi.service.AppUserService users;
+    public AuthHelper(JwtUtil jwtUtil, com.itzixi.service.AppUserService users) {
         this.jwtUtil = jwtUtil;
+        this.users = users;
     }
 
     public String extractToken(HttpServletRequest request) {
@@ -28,13 +30,6 @@ public class AuthHelper {
             return headerToken;
         }
 
-        //从请求参数中获取token字段
-        String queryToken = request.getParameter("token");
-        //如果token字段存在
-        if (StringUtils.hasText(queryToken)) {
-            return queryToken;
-        }
-
         return null;
     }
 
@@ -44,6 +39,9 @@ public class AuthHelper {
         if (!StringUtils.hasText(token) || !jwtUtil.isValid(token)) {
             return null;
         }
-        return jwtUtil.getUsername(token);
+        String id = jwtUtil.getUserId(token);
+        if (!StringUtils.hasText(id)) return null;
+        com.itzixi.bean.AppUser user = users.findById(id);
+        return user == null ? null : user.getUsername();
     }
 }

@@ -25,6 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  **/
 //用于接收客户端连接SSE的请求
 @Slf4j
+@org.springframework.context.annotation.Profile("dev & !prod")
 @RestController
 @RequestMapping("sse")
 public class SSEController {

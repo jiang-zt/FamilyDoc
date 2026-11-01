@@ -1,5 +1,8 @@
 
-const backendBaseURL = `${window.location.protocol}//${window.location.hostname}:8080`;
+if (!window.familyDoctorConfig || !window.familyDoctorConfig.backendBaseURL) {
+    throw new Error('缺少 runtime-config.js，请检查配置脚本是否加载');
+}
+const backendBaseURL = window.familyDoctorConfig.backendBaseURL;
 window.appConfig = {
     backendBaseURL: backendBaseURL
 };

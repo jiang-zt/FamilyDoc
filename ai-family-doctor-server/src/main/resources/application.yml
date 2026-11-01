@@ -54,3 +54,15 @@ chat:
     max-turns: 10        # 最近 10 轮完整问答（初始值）
     max-question-chars: 8000
     max-chars: 12000     # 历史上下文最多 12000 字符
+
+# 单实例固定时间窗；计数在重启后清零。窗口从首次请求开始，非自然日。
+protection:
+  register-ip-per-hour: 5
+  register-global-per-hour: 100
+  login-ip-per-minute: 30
+  login-account-per-minute: 10
+  chat-ip-per-minute: 60
+  chat-user-per-minute: 10
+  chat-user-per-day: 100
+  chat-global-per-day: 1000
+  chat-max-concurrent: 8

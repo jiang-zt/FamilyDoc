@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * @Description CorsConfig
  **/
 
+@org.springframework.context.annotation.Profile("!prod")
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
     //添加跨域的映射
