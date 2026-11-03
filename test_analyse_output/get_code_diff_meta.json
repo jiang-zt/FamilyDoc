@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "source_type": "local_git",
+  "repo": "/Users/jzttttt/JZT_WorkSpace/Projects/DSSpringAIFamilyDoctor/ai-family-doctor",
+  "base_ref": "d69e870e019ce9769ce2315be03d5fa4f3d231d5",
+  "head_ref": "HEAD",
+  "base_sha": "d69e870e019ce9769ce2315be03d5fa4f3d231d5",
+  "head_sha": "643e84cfd4bfb398ce60d29986b70475bb99dccf",
+  "has_changes": true,
+  "comparison": "two_committed_trees",
+  "files": [
+    {
+      "path": "ai-family-doctor-server/src/main/resources/shared-chat-schema.sql",
+      "status": "added",
+      "previous_path": null,
+      "additions": 36,
+      "deletions": 0,
+      "binary": false,
+      "changes": 36
+    }
+  ],
+  "out_of_scope_note": "Uncommitted working tree files are excluded by get_code_diff and are not part of this analysis contract."
+}
