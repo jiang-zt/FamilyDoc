@@ -1,0 +1,103 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Chat HTML rendering tests</title>
+<pre id="result">Running</pre>
+<script src="../libs/purify-3.4.17.min.js"></script>
+<script src="../js/chatHtml.js"></script>
+<script>
+(async () => { try {
+    let count = 0;
+    function check(value, message) { if (!value) throw Error(message); count++; }
+    function render(raw) {
+        const node = document.createElement('div');
+        node.innerHTML = window.chatHtml.render(raw);
+        return node;
+    }
+    const formatted = render('<div class="section"><strong>建议</strong><p>第一段<br>下一行</p><ul><li>内容</li></ul></div>');
+    check(formatted.querySelector('strong').textContent === '建议', 'preserve bold');
+    check(formatted.querySelector('li').textContent === '内容', 'preserve list');
+    check(formatted.querySelector('br'), 'preserve line breaks');
+    const dirty = render('<script>alert(1)<\/script><img src=x onerror=alert(1)><iframe src="https://example.com"></iframe><svg onload=alert(1)></svg><p onclick="alert(1)" style="position:fixed" id="doctorPage">safe</p>');
+    check(!dirty.querySelector('script,img,iframe,svg'), 'remove executable and loading tags');
+    check(dirty.querySelector('p').attributes.length === 0, 'remove events, style and DOM ids');
+    for (const url of ['javascript:alert(1)', 'jav&#x61;script:alert(1)', 'data:text/html,bad', 'vbscript:bad']) {
+        check(!render('<a href="'+url+'">bad</a>').querySelector('a').hasAttribute('href'), 'remove unsafe URL '+url);
+    }
+    check(render('<a href="https://example.com/path">source</a>').querySelector('a').getAttribute('href') === 'https://example.com/path', 'preserve safe link');
+    const purifier = window.DOMPurify;
+    window.DOMPurify = undefined;
+    const fallback = render('<img src=x onerror=alert(1)> & text');
+    check(fallback.children.length === 0 && fallback.textContent === '<img src=x onerror=alert(1)> & text', 'escape on missing purifier');
+    window.DOMPurify = {sanitize(){throw Error('failure');}};
+    check(render('<script>bad<\/script>').children.length === 0, 'escape on sanitizer exception');
+    window.DOMPurify = purifier;
+    // 实际聊天页使用真实同步、渲染代码；仅 HTTP / SSE 网络替换为确定性共享服务。
+    const frame = document.createElement('iframe');
+    frame.style.cssText = 'width:100%;height:620px;border:0';
+    const loaded = new Promise(resolve => frame.onload = resolve);
+    frame.src = '../pages/chat-doctor.html';
+    document.body.appendChild(frame);
+    await loaded;
+    const user = {id:'html-render-test', username:'render-test'};
+    let snapshot = {conversationId:'render-conversation',version:1,generating:false,requestId:null,messages:[]};
+    let posts = 0;
+    const subscribers = [];
+    const tick = () => new Promise(resolve => setTimeout(resolve, 30));
+    function broadcast() {
+        for (const sub of subscribers) if (!sub.signal.aborted) {
+            sub.controller.enqueue(new TextEncoder().encode('event: state\ndata: '+JSON.stringify(snapshot)+'\n\n'));
+        }
+    }
+    function configure(live) {
+        live.doctorPage.resetLocalConversation();
+        // 保持真实 cookie 不变，测试凭证只存在于当前 frame 的替身中。
+        live.cookieUtils = {getToken:()=> 'render-test-token', getUserInfo:()=>user};
+        live.authApi.me = async () => user;
+        live.fetch = async (url, options) => {
+            check(options.headers.Authorization === 'Bearer render-test-token', 'authenticated request');
+            if (url.endsWith('/events')) return new Response(new ReadableStream({start(controller) {
+                subscribers.push({controller,signal:options.signal});
+                controller.enqueue(new TextEncoder().encode('event: state\ndata: '+JSON.stringify(snapshot)+'\n\n'));
+            }}), {headers:{'Content-Type':'text/event-stream'}});
+            if (options.method === 'POST') {
+                posts++;
+                const body = JSON.parse(options.body);
+                snapshot = {...snapshot,version:2,generating:true,requestId:'render-request',messages:[
+                    {id:'user-message',role:'user',content:body.message,status:'COMPLETE'},
+                    {id:'answer-message',role:'assistant',content:'<div><strong>健康建议</strong><ul><li>保持规律作息</li></ul>',status:'GENERATING'}
+                ]};
+                broadcast();
+                return Response.json({requestId:'render-request',status:'GENERATING'},{status:202});
+            }
+            return Response.json(snapshot);
+        };
+    }
+    let live = frame.contentWindow;
+    configure(live);
+    await live.doctorPage.restoreConversation(user);
+    await tick();
+    live.document.getElementById('user-input').value = 'test question';
+    await live.doctorPage.doChat();
+    await tick(); await live.Vue.nextTick();
+    check(live.document.getElementById('btn-chat').disabled && live.document.getElementById('btn-clear').disabled, 'generation disables send and shared clear');
+    snapshot = {...snapshot,version:3,generating:false,requestId:null,messages:snapshot.messages.map(item => item.role === 'assistant'
+        ? {...item,status:'COMPLETE',content:item.content+'<img src=x onerror="alert(1)"><a href="javascript:alert(1)">链接</a></div>'} : item)};
+    broadcast();
+    await tick(); await live.Vue.nextTick();
+    check(!live.document.getElementById('btn-chat').disabled && !live.document.getElementById('btn-clear').disabled, 'completion enables send and shared clear');
+    const answer = live.document.querySelector('.chat-answer');
+    check(answer.querySelector('strong').textContent === '健康建议', 'live page renders bold');
+    check(!answer.querySelector('img') && !answer.querySelector('a').hasAttribute('href'), 'live page sanitizes');
+    const liveHtml = answer.innerHTML;
+    live.doctorPage.cancelChat();
+    await new Promise(resolve => { frame.onload = resolve; live.location.reload(); });
+    live = frame.contentWindow;
+    configure(live);
+    await live.doctorPage.restoreConversation(user);
+    await tick(); await live.Vue.nextTick();
+    check(live.document.querySelector('.chat-answer').innerHTML === liveHtml, 'server-restored page matches live page');
+    check(posts === 1, 'restoring does not resend question');
+    live.doctorPage.cancelChat();
+    document.getElementById('result').textContent = 'PASS: '+count+' assertions';
+} catch (error) { document.getElementById('result').textContent = 'FAIL: '+error.message; } })();
+</script>

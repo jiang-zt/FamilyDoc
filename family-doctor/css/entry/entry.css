@@ -25,7 +25,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 24px;
+    padding: 24px 24px 72px;
     color: var(--ink);
 }
 
@@ -87,6 +87,17 @@ body {
     font-size: 13px;
 }
 
-.role-card.admin {
-    background: linear-gradient(120deg, rgba(15, 91, 255, 0.12), rgba(77, 210, 255, 0.2));
+.admin-login-link {
+    position: fixed;
+    right: 24px;
+    bottom: 20px;
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.admin-login-link:hover,
+.admin-login-link:focus-visible {
+    color: var(--primary);
 }

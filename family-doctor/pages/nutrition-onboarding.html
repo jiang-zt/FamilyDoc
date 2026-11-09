@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>饮食偏好 · 营养助手</title>
+<link rel="stylesheet" href="../../css/entry/login.css">
+<link rel="stylesheet" href="../../css/ambient.css">
+<link rel="stylesheet" href="../../css/nutrition-onboarding.css">
+<style>body{display:block;padding:0}</style>
+</head>
+<body>
+<main id="onboarding" class="onboarding" v-cloak>
+    <header class="onboarding-top">
+        <nav class="onboarding-progress" aria-label="填写进度">
+            <button v-for="(step,i) in steps" :key="i" class="onboarding-dot" :class="{'is-current':index===i,'is-visited':answers[i]}" :aria-label="'第'+(i+1)+'项：'+step.title" :aria-current="index===i?'step':null" :disabled="busy || loading" @click="go(i)"></button>
+        </nav>
+        <button class="onboarding-skip" :disabled="busy || loading" @click="skip">Skip <span aria-hidden="true">→</span><span class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">跳过当前项</span></button>
+    </header>
+    <p class="onboarding-loading" v-if="loading">正在准备你的饮食设置…</p>
+    <div class="onboarding-viewport" v-else-if="profile" @touchstart.passive="touchStart" @touchend.passive="touchEnd">
+        <div class="onboarding-track" :style="{transform:'translateX(-'+index*100+'%)'}">
+            <section v-for="(step,i) in steps" :key="i" class="onboarding-step" :aria-hidden="i!==index" :inert="i!==index">
+                <h1>{{step.title}}</h1><p class="onboarding-question">{{step.subtitle}}</p>
+                <div class="onboarding-options">
+                    <button v-for="option in step.options" :key="option" class="onboarding-option" :aria-pressed="answers[i] && answers[i].label===option ? 'true':'false'" :disabled="busy || i!==index" @click="select(option)">{{option}}</button>
+                </div>
+                <form class="onboarding-custom" @submit.prevent="submitCustom">
+                    <span aria-hidden="true">✎</span>
+                    <input v-model="customInputs[i]" :aria-label="step.placeholder" :placeholder="step.placeholder" maxlength="200" :disabled="busy || i!==index" @keydown.enter="onEnter($event)">
+                    <button type="submit" :disabled="busy || i!==index || !customInputs[i].trim()" aria-label="保存自定义内容">→</button>
+                </form>
+            </section>
+        </div>
+    </div>
+    <div class="onboarding-error" role="alert">{{error}} <button v-if="error" @click="retry" :disabled="busy">重试</button></div>
+    <footer class="onboarding-footer">
+        <div class="onboarding-count">{{index+1}} / 5</div>
+        <p>所有信息均可跳过，之后可在聊天页修改。</p>
+        <p v-if="profile">{{profile.autoUpdate?'对话后会自动更新你明确表达的饮食信息，可在画像设置中关闭。':'对话自动更新已关闭。'}}</p>
+    </footer>
+</main>
+<script src="../../libs/vue.min.js"></script>
+<script src="../../libs/js.cookie.min.js"></script>
+<script src="../../js/cookieUtils.js"></script>
+<script src="../../js/runtime-config.js"></script>
+<script>window.appConfig={backendBaseURL:window.familyDoctorConfig.backendBaseURL};</script>
+<script src="../../js/nutritionOnboarding.js"></script>
+<script src="../../js/nutritionOnboardingPage.js"></script>
+</body></html>

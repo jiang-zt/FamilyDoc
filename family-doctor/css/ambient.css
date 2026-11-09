@@ -1,0 +1,18 @@
+/* Shared blue-white atmosphere; decoration never receives pointer input. */
+:root { --ambient-font:"Plus Jakarta Sans","Helvetica Neue","PingFang SC","Microsoft YaHei",Arial,sans-serif; }
+body { font-family:var(--ambient-font); }
+h1,h2,h3 { font-family:inherit; }
+button,input,select,textarea { font-family:inherit; }
+body::before, body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:9990; }
+body::before {
+    border:2px solid transparent; border-radius:18px;
+    background:linear-gradient(110deg,transparent 5%,#8bcaff 25%,#368df2 40%,#c1e9ff 53%,transparent 72%,#73b6f5 90%) border-box;
+    background-size:350% 350%;
+    -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    animation:ambient-edge-flow 14s ease-in-out infinite alternate;
+}
+body::after { border-radius:18px; box-shadow:inset 0 0 28px 3px rgba(99,163,229,.22),inset 0 0 5px rgba(91,163,237,.3); animation:ambient-edge-breathe 7s ease-in-out infinite alternate; }
+@keyframes ambient-edge-flow { from{background-position:0% 10%}to{background-position:100% 90%} }
+@keyframes ambient-edge-breathe { from{opacity:.45}to{opacity:.9} }
+@media(prefers-reduced-motion:reduce) { body::before,body::after { animation:none; } }

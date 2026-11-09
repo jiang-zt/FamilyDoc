@@ -1,18 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 家庭医生</title>
-    <link rel="stylesheet" href="../../css/doctor/doctor.css">
+    <title>营养助手</title>
+    <link rel="stylesheet" href="../../css/doctor/doctor.css?v=20261106-welcome4">
     <style>
         .chat-failed { color: #e74c3c; }
     </style>
+    <link rel="stylesheet" href="../../css/ambient.css">
 </head>
 <body>
     <div class="chat-container" id="doctorPage">
-        <div class="chat-header">
-            AI 家庭医生 <block v-if="currentUserName != null">正在和<strong style="color: rgb(4, 6, 6);">{{currentUserName}}</strong>沟通中</block>
+        <div class="chat-header" @keydown.esc="cancelClearChat()">
+            <button id="btn-clear" ref="clearButton" class="chat-clear-icon" type="button"
+                v-if="currentUserName" :disabled="!isConnected || isGenerating || isSubmitting"
+                aria-label="清空共享会话" title="清空共享会话" :aria-expanded="showClearConfirm ? 'true' : 'false'"
+                aria-controls="clear-chat-confirm" @click="clearChatRecords()"><span aria-hidden="true">🧹</span></button>
+            <section v-if="showClearConfirm" id="clear-chat-confirm" class="chat-clear-confirm" role="dialog" aria-labelledby="clear-chat-title">
+                <strong id="clear-chat-title">清空共享会话？</strong>
+                <p>所有设备的对话将同步清空，问题与评分指标仍保留。</p>
+                <div class="chat-clear-actions">
+                    <button ref="clearCancel" type="button" @click="cancelClearChat()">取消</button>
+                    <button type="button" class="confirm-clear" :disabled="!isConnected || isGenerating || isSubmitting" @click="confirmClearChat()">确认清空</button>
+                </div>
+            </section>
             <div class="user-input-container" v-if="currentUserName == null">
                 <input type="text" id="login-username" placeholder="用户名" class="user-input-field"/>
                 <input type="password" id="login-password" placeholder="密码" class="user-input-field"/>
@@ -20,13 +32,14 @@
                 <button class="submit-button" @click="doRegister()">注册</button>
                 <div class="login-error" v-if="loginError">{{loginError}}</div>
             </div>
-            <div class="user-input-container" v-else>
-                <button class="submit-button" @click="doLogout()">退出登录</button>
-            </div>
+            <button v-if="currentUserName" class="chat-logout" type="button" @click="doLogout()" aria-label="退出登录" title="退出登录">退出</button>
         </div>
+        <section v-if="currentUserName" class="chat-welcome" aria-label="欢迎语">
+            <h1>最近怎么样</h1>
+        </section>
         <div class="chat-messages" id="chat-messages">
             
-            <block v-for="(item, index) in chatList">
+            <block v-for="item in chatList" :key="item.id">
                 <div class="message user" v-if="item.chatType === 'user'">
                     <div class="text">{{ item.content }}</div>
                     <div class="user-avatar">我</div>
@@ -36,19 +49,21 @@
                         <img class="avatar-img" src="../../img/doctor-avatar.png" alt="doctor">
                     </div>
                     <div class="text" :class="{ 'chat-failed': item.failed }">
-                        <div v-html="item.content"></div>
+                        <div class="chat-answer" v-html="renderAnswer(item.content)"></div>
                         <div v-if="item.statusText">{{ item.statusText }}</div>
                     </div>
                 </div>
             </block>
 
         </div>
-        <div style="font-size:12px;padding:6px">历史仅保留在当前页面，刷新会清空；问题全文与评分指标由服务端保存。</div>
+        <div style="font-size:12px;padding:6px" role="status" aria-live="polite">
+            <span v-if="currentUserName">{{ syncError || (isConnected ? (isGenerating ? '正在生成回答，其他设备会同步显示…' : '会话已同步') : '正在同步服务端会话…') }}</span>
+            <span v-else>{{ syncError || '登录后查看共享会话' }}</span>
+            <div>同一账号在各设备共享最近 100 轮对话。刷新可恢复生成进度；清空会同步删除各设备会话，问题与评分指标仍保留。</div>
+        </div>
         <div class="chat-input">
             <input type="text" id="user-input" value="" placeholder="请输入内容..." @keydown="handleKeyDown($event)">
-            <button id="btn-chat" :disabled="isGenerating" @click="doChat()">发送</button>
-            <button v-if="isGenerating" @click="cancelChat()">停止</button>
-            <button id="btn-clear" :disabled="isGenerating" @click="clearChatRecords()">清空本地对话</button>
+            <button id="btn-chat" :disabled="!isConnected || isGenerating || isSubmitting" @click="doChat()">发送</button>
         </div>
     </div>
 
@@ -66,198 +81,192 @@
 <script src="../../js/runtime-config.js"></script>
 <script src="../../js/request.js"></script>
 <script src="../../js/apis/admin/authApi.js"></script>
+<script src="../../libs/purify-3.4.17.min.js"></script>
+<script src="../../js/chatHtml.js?v=20261103-html1"></script>
 <script src="../../js/chatStream.js"></script>
-<script src="../../js/chatContext.js"></script>
+<script src="../../js/chatSync.js?v=20261103-shared1"></script>
 <script src="../../js/apis/admin/doctorApi.js"></script>
+<script src="../../js/nutritionOnboarding.js"></script>
 
 <script>
-
-	var doctorPage = new Vue({
-		el: "#doctorPage",
-		components: {
-			// 'my-component': httpVueLoader('my-component.vue')
-        },
-		data() {
-			return {
-                currentUserName: null,
-                chatList: [],
-                history: [],
-                contextVersion: 0,
-                loginError: null,
-                streamController: null,
-                beforeUnloadHandler: null,
-                isGenerating: false,
-			}
-		},
-		created() { 
-            this.beforeUnloadHandler = () => {
-                this.cancelChat();
+    var doctorPage = new Vue({
+        el: '#doctorPage',
+        data() {
+            return {
+                currentUserName: null, currentUserId: null, chatList: [],
+                contextVersion: 0, loginError: null, syncError: '',
+                isGenerating: false, isSubmitting: false, isConnected: false, showClearConfirm: false,
+                syncClient: null, sessionToken: null,
+                beforeUnloadHandler: null, authChangeHandler: null
             };
-		},
-		mounted() {
+        },
+        created() {
+            this.beforeUnloadHandler = () => this.cancelChat();
+            this.authChangeHandler = () => this.checkAuthSession();
+        },
+        mounted() {
             this.tryAutoLogin();
             this.scrollToBottom();
             window.addEventListener('beforeunload', this.beforeUnloadHandler);
+            window.addEventListener('focus', this.authChangeHandler);
+            window.addEventListener('storage', this.authChangeHandler);
+            document.addEventListener('visibilitychange', this.authChangeHandler);
         },
         beforeDestroy() {
             this.cancelChat();
-            if (this.beforeUnloadHandler) {
-                window.removeEventListener('beforeunload', this.beforeUnloadHandler);
-            }
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            window.removeEventListener('focus', this.authChangeHandler);
+            window.removeEventListener('storage', this.authChangeHandler);
+            document.removeEventListener('visibilitychange', this.authChangeHandler);
         },
-		watch: {
-		},
-		methods: {
+        methods: {
+            renderAnswer(content) { return window.chatHtml.render(content); },
             cancelChat() {
-                if (this.streamController) this.streamController.abort();
+                if (this.syncClient) this.syncClient.stop();
+                this.syncClient = null;
+                this.isConnected = false;
             },
-
+            publishAuthChange() {
+                // 仅广播会话发生变化；令牌和聊天记录不写入 localStorage。
+                try { window.localStorage.setItem('family-doctor-auth-change', Date.now() + ':' + Math.random()); } catch (_) {}
+            },
+            checkAuthSession() {
+                let user, token;
+                try { user = cookieUtils.getUserInfo(); token = cookieUtils.getToken(); } catch (_) {}
+                if (this.currentUserId && user && token && user.id === this.currentUserId && token === this.sessionToken) return;
+                if (!this.currentUserId && !user && !token) return;
+                this.resetLocalConversation();
+                this.currentUserId = null; this.currentUserName = null; this.sessionToken = null;
+                if (user && token) return this.tryAutoLogin();
+            },
             tryAutoLogin() {
-                var userInfo = cookieUtils.getUserInfo();
-                var token = cookieUtils.getToken();
-                if (!userInfo || !token) {
-                    return;
-                }
-
-                authApi.me().then((result) => {
-                    this.currentUserName = result.username;
+                let userInfo, token;
+                try { userInfo = cookieUtils.getUserInfo(); token = cookieUtils.getToken(); } catch (_) { return; }
+                if (!userInfo || !token) return;
+                const version = this.contextVersion;
+                return authApi.me().then(async result => {
+                    if (version !== this.contextVersion || token !== cookieUtils.getToken()) return;
+                    if (window.nutritionOnboarding) {
+                        try {
+                            const profile = await window.nutritionOnboarding.request('GET', undefined, token);
+                            if (version !== this.contextVersion || token !== cookieUtils.getToken()) return;
+                            if (window.nutritionOnboarding.needsSetup(profile)) {
+                                window.location.href = '/pages/nutrition-onboarding.html'; return;
+                            }
+                        } catch (error) { this.syncError = error.message; return; }
+                    }
+                    return this.restoreConversation(result);
+                }).catch(error => {
+                    if (version !== this.contextVersion || token !== cookieUtils.getToken()) return;
                     this.resetLocalConversation();
-                }).catch((err) => {
-                    this.cancelChat();
-                    cookieUtils.removeUserInfo();
-                    cookieUtils.removeToken();
+                    this.currentUserId = null; this.currentUserName = null; this.sessionToken = null;
+                    this.syncError = '登录验证失败，请重新登录';
+                    cookieUtils.removeUserInfo(); cookieUtils.removeToken();
                 });
             },
-
-            doLogin() {
+            doLogin() { return this.authenticate(false); },
+            doRegister() { return this.authenticate(true); },
+            authenticate(register) {
                 this.loginError = null;
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
-                if (username.trim() === '' || password.trim() === '') {
-                    this.loginError = '请输入用户名和密码';
-                    return;
-                }
-
-                authApi.login({username: username.trim(), password: password.trim()}).then((result) => {
-                    this.cancelChat();
-                    cookieUtils.setToken(result.token);
-                    cookieUtils.setUserInfo(result.user);
-                    this.currentUserName = result.user.username;
-                    this.resetLocalConversation();
-                }).catch((err) => {
-                    this.loginError = '登录失败，请检查用户名或密码';
-                });
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+                if (!username || !password) { this.loginError = '请输入用户名和密码'; return; }
+                return (register ? authApi.register({username,password}) : authApi.login({username,password})).then(result => {
+                    cookieUtils.setToken(result.token); cookieUtils.setUserInfo(result.user);
+                    this.publishAuthChange();
+                    if (window.nutritionOnboarding) return window.nutritionOnboarding.routeAfterAuth().catch(error => { this.loginError = error.message; });
+                    return this.restoreConversation(result.user);
+                }).catch(error => { this.loginError = register ? '注册失败，用户名可能已存在' : '登录失败，请检查用户名或密码'; });
             },
-
-            doRegister() {
-                this.loginError = null;
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
-                if (username.trim() === '' || password.trim() === '') {
-                    this.loginError = '请输入用户名和密码';
-                    return;
-                }
-                authApi.register({username: username.trim(), password: password.trim()}).then((result) => {
-                    this.cancelChat();
-                    cookieUtils.setToken(result.token);
-                    cookieUtils.setUserInfo(result.user);
-                    this.currentUserName = result.user.username;
-                    this.resetLocalConversation();
-                }).catch((err) => {
-                    this.loginError = '注册失败，用户名可能已存在';
-                });
-            },
-
             doLogout() {
-                this.cancelChat();
-                cookieUtils.removeUserInfo();
-                cookieUtils.removeToken();
-                this.currentUserName = null;
-                this.chatList = [];
+                this.resetLocalConversation();
+                this.currentUserId = null; this.currentUserName = null; this.sessionToken = null;
+                cookieUtils.removeUserInfo(); cookieUtils.removeToken(); this.publishAuthChange();
                 window.location.href = '/pages/entry.html';
             },
-
+            restoreConversation(user) {
+                this.resetLocalConversation();
+                this.currentUserId = user.id; this.currentUserName = user.username;
+                this.sessionToken = cookieUtils.getToken();
+                const token = this.sessionToken, version = this.contextVersion;
+                this.syncClient = window.chatSync.create({
+                    baseURL: window.appConfig.backendBaseURL,
+                    getToken: () => cookieUtils.getToken() === token ? token : '',
+                    onSnapshot: snapshot => {
+                        if (version !== this.contextVersion) return;
+                        this.isGenerating = snapshot.generating;
+                        if (snapshot.generating) this.showClearConfirm = false;
+                        this.chatList = snapshot.messages.map(item => ({id:item.id, content:item.content,
+                            chatType:item.role === 'user' ? 'user' : 'bot',
+                            failed:['FAILED','INTERRUPTED'].includes(item.status),
+                            statusText:item.status === 'FAILED' ? '回答生成失败，请稍后重试' : item.status === 'INTERRUPTED' ? '回答已中断' : ''}));
+                        if (snapshot.messages.length) this.scrollToBottom();
+                    },
+                    onConnection: (connected, error) => {
+                        if (version !== this.contextVersion) return;
+                        this.isConnected = connected; this.syncError = error;
+                    },
+                    onAuthError: () => {
+                        if (version !== this.contextVersion) return;
+                        if (cookieUtils.getToken() !== token) { this.checkAuthSession(); return; }
+                        this.resetLocalConversation();
+                        this.currentUserId = null; this.currentUserName = null; this.sessionToken = null;
+                        this.syncError = '登录已失效，请重新登录';
+                        cookieUtils.removeUserInfo(); cookieUtils.removeToken(); this.publishAuthChange();
+                    }
+                });
+                return this.syncClient.start();
+            },
             resetLocalConversation() {
-                this.cancelChat();
-                this.streamController = null;
-                this.isGenerating = false;
                 this.contextVersion++;
-                this.history = [];
-                this.chatList = [];
+                this.cancelChat();
+                this.isGenerating = false; this.isSubmitting = false; this.showClearConfirm = false; this.syncError = ''; this.chatList = [];
             },
             clearChatRecords() {
-                if (this.isGenerating) { alert('请先停止生成'); return; }
-                if (confirm('确认清空本地对话？问题与评分指标仍保留。')) this.resetLocalConversation();
+                if (!this.isConnected || this.isGenerating || this.isSubmitting || !this.syncClient) return;
+                this.showClearConfirm = !this.showClearConfirm;
+                if (this.showClearConfirm && this.$nextTick) this.$nextTick(() => {
+                    if (this.$refs && this.$refs.clearCancel) this.$refs.clearCancel.focus();
+                });
             },
-
+            cancelClearChat() {
+                this.showClearConfirm = false;
+                if (this.$refs && this.$refs.clearButton) this.$refs.clearButton.focus();
+            },
+            async confirmClearChat() {
+                if (!this.showClearConfirm || !this.isConnected || this.isGenerating || this.isSubmitting || !this.syncClient) return;
+                this.cancelClearChat();
+                const version = this.contextVersion;
+                this.isSubmitting = true;
+                try { await this.syncClient.clear(); }
+                catch (error) { if (version === this.contextVersion) this.syncError = error.message; }
+                finally { if (version === this.contextVersion) this.isSubmitting = false; }
+            },
             handleKeyDown(event) {
-                if (event.key === 'Enter') {
-                    if (this.isGenerating) {
-                        return;
-                    }
-                    this.doChat();
-                }
+                if (event.key === 'Enter' && !event.isComposing) this.doChat();
             },
-
             async doChat() {
-                if (this.isGenerating) return;
-                const input = document.getElementById('user-input');
-                const message = input.value;
+                if (!this.isConnected || this.isGenerating || this.isSubmitting || !this.syncClient) return;
+                const input = document.getElementById('user-input'), message = input.value;
                 if (!message.trim()) return;
                 if (message.length > 8000) { alert('问题不能超过 8000 字符'); return; }
                 if (!this.currentUserName) { alert('请先登录'); return; }
-                this.isGenerating = true;
-                const history = window.chatContext.snapshot(this.history);
                 const version = this.contextVersion;
-                const controller = new AbortController();
-                this.streamController = controller;
-                const bot = { content: '', chatType: 'bot', failed: false, statusText: '' };
-                this.chatList.push({ content: message, chatType: 'user', userName: this.currentUserName });
-                this.chatList.push(bot);
-                input.value = '';
-                this.scrollToBottom();
-                let terminal = false;
+                this.showClearConfirm = false;
+                this.isSubmitting = true; this.syncError = '';
                 try {
-                    await doctorApi.doChat({ message, history }, event => {
-                        if (version !== this.contextVersion) return;
-                        if (event.event === 'delta') bot.content += event.data.text;
-                        if (event.event === 'done') {
-                            terminal = true;
-                            this.history = window.chatContext.append(history, message, bot.content);
-                        }
-                        if (event.event === 'failed') {
-                            terminal = true;
-                            bot.failed = true;
-                            bot.statusText = event.data.message;
-                        }
-                        this.scrollToBottom();
-                    }, controller.signal);
+                    await this.syncClient.send(message);
+                    if (version === this.contextVersion && input.value === message) input.value = '';
                 } catch (error) {
-                    if (!terminal) {
-                        bot.failed = true;
-                        bot.statusText = error.name === 'AbortError'
-                            ? '已停止，未完成内容不会加入后续上下文'
-                            : (error.message || '连接中断，结果未确认');
-                    }
-                } finally {
-                    if (this.streamController === controller) {
-                        this.streamController = null;
-                        this.isGenerating = false;
-                    }
-                    this.scrollToBottom();
-                }
+                    if (version === this.contextVersion) this.syncError = error.message || '发送结果未确认，请查看同步会话后再决定是否发送';
+                } finally { if (version === this.contextVersion) this.isSubmitting = false; }
             },
-
             scrollToBottom() {
                 this.$nextTick(function () {
                     const chatMessages = document.getElementById('chat-messages');
-                    if (!chatMessages) {
-                        return;
-                    }
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
                 });
             }
         }
-	});
-
+    });
 </script>

@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用户登录</title>
     <link rel="stylesheet" href="../../css/entry/login.css">
- </head>
+     <link rel="stylesheet" href="../../css/ambient.css">
+</head>
 <body>
     <div class="login-container" id="userLogin">
         <div class="login-card">
@@ -31,6 +32,7 @@
 <script src="../../js/runtime-config.js"></script>
 <script src="../../js/request.js"></script>
 <script src="../../js/apis/admin/authApi.js"></script>
+<script src="../../js/nutritionOnboarding.js"></script>
 
 <script>
     new Vue({
@@ -50,7 +52,7 @@
                 authApi.login({username: username.trim(), password: password.trim()}).then((result) => {
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
-                    window.location.href = '/pages/chat-doctor.html';
+                    return window.nutritionOnboarding.routeAfterAuth().catch(error => { this.loginError = error.message; });
                 }).catch((err) => {
                     this.loginError = '登录失败，请检查用户名或密码';
                 });
@@ -66,7 +68,7 @@
                 authApi.register({username: username.trim(), password: password.trim()}).then((result) => {
                     cookieUtils.setToken(result.token);
                     cookieUtils.setUserInfo(result.user);
-                    window.location.href = '/pages/chat-doctor.html';
+                    return window.nutritionOnboarding.routeAfterAuth().catch(error => { this.loginError = error.message; });
                 }).catch((err) => {
                     this.loginError = '注册失败，用户名可能已存在';
                 });
