@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "task_id": "basic-qa",
+  "task_version": "0.4.0",
+  "metadata": {
+    "name": "基础问答：四类支持性回答",
+    "description": "使用 my_doctor 系统提示词，一次请求生成四类 HTML section；提取 data-slot 文本后一次合并评价。",
+    "tags": [
+      "basic-qa",
+      "hai-coaching",
+      "single-html-sections",
+      "my-doctor"
+    ],
+    "created_on": "2026-11-07",
+    "implementation_status": "implemented",
+    "last_reviewed": "2026-11-09"
+  },
+  "target": "model_chat_completion",
+  "case_contract": {
+    "version": "hai-coaching-four-response-v1",
+    "selection_owner": "suite",
+    "on_empty_selection": "fail_preflight",
+    "on_invalid_case": "fail_preflight",
+    "on_duplicate_case_id": "fail_preflight",
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": [
+        "case_id",
+        "input",
+        "reflection_candidates",
+        "reflection_annotation",
+        "comfort_candidates",
+        "comfort_annotation",
+        "reframing_candidates",
+        "reframing_annotation",
+        "suggestion_candidates",
+        "suggestion_annotation"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^(?!0000)[0-9]{4}$"
+        },
+        "group_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {
+          "type": "object",
+          "required": [
+            "struggle"
+          ],
+          "properties": {
+            "struggle": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          },
+          "additionalProperties": true
+        },
+        "reflection_candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "reflection_annotation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "Y",
+              "N",
+              null
+            ]
+          }
+        },
+        "comfort_candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "comfort_annotation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "Y",
+              "N",
+              null
+            ]
+          }
+        },
+        "reframing_candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "reframing_annotation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "Y",
+              "N",
+              null
+            ]
+          }
+        },
+        "suggestion_candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "suggestion_annotation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "Y",
+              "N",
+              null
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "semantic_validation": [
+      "每类 candidates 与 annotation 数组必须等长，并按下标一一对应。",
+      "每类至少存在一个非空白且标注为 Y 的参考候选；只校验 suite 选中的用例，不静默跳过。",
+      "若 input.required_response_types 存在，其成员须与任务的四类响应完全一致且不重复。"
+    ],
+    "derived_fields": {
+      "required_information": {
+        "persist_to_case": false,
+        "group_key": "response_type",
+        "groups": [
+          "reflection",
+          "comfort",
+          "reframing",
+          "suggestion"
+        ],
+        "candidate_field_template": "{response_type}_candidates",
+        "annotation_field_template": "{response_type}_annotation",
+        "accepted_annotation": "Y",
+        "excluded_annotations": [
+          "N",
+          null
+        ],
+        "candidate_index_base": 0,
+        "preserve_original_candidate_indices": true,
+        "semantics": "四个响应组均必需；组内候选是可替代的参考表达，不要求覆盖全部候选。标注 Y 表示来源的安全标注，不代表完整事实认证或唯一正确答案。",
+        "on_empty_reference_group": "fail_preflight"
+      }
+    }
+  },
+  "executor": "single_html_sections",
+  "executor_config": {
+    "input_field": "input.struggle",
+    "response_types": [
+      "reflection",
+      "comfort",
+      "reframing",
+      "suggestion"
+    ],
+    "generation_calls_per_case": 1,
+    "repetitions": 1,
+    "share_history": false,
+    "prompt": {
+      "format": "modelfile",
+      "path_base": "task_file_directory",
+      "source_path": "../../../ai-family-doctor-server/src/main/resources/prompt/my_doctorV2",
+      "system_policy": "原样使用 SYSTEM 块；FROM 仅作来源记录，实际 API 模型由运行时环境变量显式指定。",
+      "temperature_source": "PARAMETER temperature，允许运行时显式覆盖"
+    },
+    "output_contract": {
+      "format": "html_fragment",
+      "section_selector": "div[data-slot]",
+      "required_slots": [
+        "reflection",
+        "comfort",
+        "reframing",
+        "suggestion"
+      ],
+      "require_order": true,
+      "require_nonempty": true,
+      "duplicates": "fail_case",
+      "missing_sections": "fail_case",
+      "automatic_repair_calls": 0,
+      "note": "原提示词允许省略部分；smoke 严格要求四类完整，不补写、不再次请求生成。",
+      "contract_id": "four-slots-html-v1"
+    },
+    "input_policy": "只发送系统提示词与原始 struggle；参考候选、标注和 rubric 不进入生成请求。"
+  },
+  "execution": {
+    "concurrency": 1,
+    "timeout_seconds": 60,
+    "timeout_scope": "per_generation_call",
+    "reset_scope": {
+      "when": "before_each_case",
+      "resources": [
+        "request_messages"
+      ],
+      "postconditions": [
+        "每次请求独立，只含 SYSTEM 与当前 struggle，不携带历史。"
+      ]
+    },
+    "on_case_error": "stop_task",
+    "retry_policy_source": "suite.execution.retry_policy",
+    "generation_retry_scope": "whole_request_only_if_definitely_not_accepted",
+    "call_budget": {
+      "generation_calls_per_case": 1,
+      "judge_calls_per_case": 1,
+      "total_calls_per_case": 2,
+      "includes_infra_retries": false,
+      "hidden_repair_or_selection_calls": 0
+    }
+  },
+  "evaluation": {
+    "rubric_version": "basic-qa-v2",
+    "rubric_path": "rubrics/basic-qa-v2.json",
+    "path_base": "task_file_directory",
+    "checks": [
+      "structure.html_fragment",
+      "structure.four_slots",
+      "structure.slot_order",
+      "structure.nonempty_body",
+      "content.relevance",
+      "content.faithfulness",
+      "content.reflection_accuracy",
+      "content.comfort_support",
+      "content.reframing_quality",
+      "content.suggestion_actionability",
+      "safety.no_harmful_content",
+      "safety.medical_boundaries"
+    ],
+    "on_missing_evaluator": "fail_preflight",
+    "on_mock_generation": "not_evaluated",
+    "pass_policy": "all_checks_pass",
+    "rubric_revision": "1.0.0",
+    "call_scope": "one_call_per_case_with_four_extracted_sections",
+    "on_incomplete_case": "fail_without_judge_call",
+    "result_contract": "check-results-v1"
+  },
+  "traceability": {
+    "required_run_artifacts": [
+      "task_snapshot",
+      "rubric_snapshot",
+      "selected_cases_snapshot"
+    ],
+    "required_provenance": [
+      "task_sha256",
+      "rubric_sha256",
+      "rubric_revision",
+      "selected_cases_sha256",
+      "suite_id",
+      "run_id",
+      "generation_model_config",
+      "prompt_source_sha256",
+      "rendered_messages",
+      "judge_model_config",
+      "judge_prompt_sha256"
+    ],
+    "required_case_evidence": [
+      "case_id",
+      "raw_answer",
+      "sections",
+      "provider_request_id",
+      "execution_status",
+      "total_ms",
+      "token_usage_if_available",
+      "evaluation_status",
+      "response_results",
+      "actual_call_counts"
+    ],
+    "secret_policy": "不得归档 API 密钥、密码或认证 token。"
+  }
+}

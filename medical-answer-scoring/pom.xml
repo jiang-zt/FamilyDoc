@@ -13,7 +13,7 @@
 
     <artifactId>medical-answer-scoring</artifactId>
     <name>medical-answer-scoring</name>
-    <description>Shared medical answer scoring rules for service and API evals.</description>
+    <description>Shared answer scoring rules and offline nutrition evaluation tools.</description>
 
     <dependencies>
         <dependency>

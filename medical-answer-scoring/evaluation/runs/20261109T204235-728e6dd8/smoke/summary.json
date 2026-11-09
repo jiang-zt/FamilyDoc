@@ -1,0 +1,22 @@
+{
+  "run_id": "20261109T204235-728e6dd8",
+  "status": "PASS",
+  "total": 2,
+  "passed": 2,
+  "recorded": 2,
+  "generation_calls": 2,
+  "judge_calls": 2,
+  "error": "",
+  "checks_passed": 24,
+  "checks_failed": 0,
+  "checks_unavailable": 0,
+  "task_results": [
+    {
+      "task_id": "basic-qa",
+      "total": 2,
+      "recorded": 2,
+      "status": "PASS",
+      "passed": 2
+    }
+  ]
+}

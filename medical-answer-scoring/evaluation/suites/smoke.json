@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "suite_id": "smoke",
+  "suite_version": "0.4.1",
+  "owner": "qa-team",
+  "last_reviewed": "2026-11-09",
+  "description": "单次生成四部分、提取后合并评价。",
+  "reference_policy": {
+    "path_base": "suite_file_directory",
+    "on_invalid_reference": "fail_suite",
+    "validate_before_execution": true,
+    "required_checks": [
+      "task_file_exists_and_is_valid",
+      "task_version_and_case_contract_supported",
+      "executor_and_evaluator_available",
+      "rubric_reference_and_version_valid",
+      "case_file_exists_and_is_valid_jsonl",
+      "case_ids_unique_in_source",
+      "selected_ids_unique_and_all_present",
+      "selection_nonempty",
+      "selected_cases_satisfy_task_contract"
+    ]
+  },
+  "entries": [
+    {
+      "task_path": "../tasks/basic-qa.json",
+      "cases": {
+        "path": "../standrad_cases/hai-coaching-v1.jsonl",
+        "select": {
+          "ids": [
+            "0001",
+            "0002"
+          ],
+          "order": "listed_ids"
+        }
+      }
+    }
+  ],
+  "pass_policy": {
+    "mode": "all_cases_pass",
+    "allow_case_failures": 0,
+    "require_all_selected_cases_executed": true,
+    "required_case_status": "PASS",
+    "non_passing_statuses": [
+      "FAIL",
+      "ERROR",
+      "EVALUATION_ERROR",
+      "NEEDS_REVIEW",
+      "NOT_EVALUATED",
+      "NOT_RUN",
+      "SKIPPED"
+    ],
+    "on_conflicting_policy": "fail_preflight"
+  },
+  "on_failure": "block_deploy",
+  "deployment_gate": {
+    "pass_exit_code": 0,
+    "failure_exit_code": 1,
+    "enforcement": "部署流程必须检查执行器退出码，仅 suite 为 PASS 时允许继续部署。"
+  },
+  "execution": {
+    "suite_timeout_seconds": 180,
+    "timeout_scope": [
+      "preflight",
+      "generation",
+      "evaluation",
+      "retries"
+    ],
+    "retries_on_infra_error": 1,
+    "retry_scope": "per_case",
+    "retry_policy": {
+      "retryable_errors": [
+        "transient_connection_error",
+        "dependency_timeout"
+      ],
+      "do_not_retry": [
+        "content_check_failure",
+        "needs_review",
+        "invalid_reference",
+        "invalid_case",
+        "invalid_judge_output",
+        "authentication_error",
+        "configuration_error"
+      ],
+      "judge_failure": "复用已提取的四部分正文及完整原回答，仅重试一次合并评分，不重新生成。",
+      "generation_failure": "整次生成仅在确认原请求未受理时重试；超时后是否执行不明确时不重发。",
+      "preserve_all_attempts": true,
+      "successful_retry": "以重试后的有效结果参与通过判定，同时保留基础设施异常及重试记录。",
+      "policy_precedence": "可重试错误先按本策略尝试恢复；次数耗尽或不满足重试条件后，再应用 task 的停止策略。",
+      "budget": "所有重试共享 suite 总超时预算，不得重置或延长该预算。"
+    },
+    "on_suite_timeout": "fail_suite",
+    "timeout_handling": "不再启动新请求；保存已完成回复及评分证据，当前用例记 ERROR 或 EVALUATION_ERROR，未开始用例记 NOT_RUN。",
+    "fail_fast": true
+  },
+  "artifacts": {
+    "path_base": "evaluation_directory",
+    "output_dir": "runs/<run_id>/smoke",
+    "run_id_source": "runner_generated",
+    "on_existing_output_dir": "fail_suite",
+    "preserve_on_failure": true,
+    "required": [
+      "report.html",
+      "summary.json",
+      "results.json",
+      "manifest.json"
+    ],
+    "renderer_path": "reporting/render_report.py"
+  }
+}

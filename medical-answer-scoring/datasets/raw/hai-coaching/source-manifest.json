@@ -1,0 +1,394 @@
+{
+  "repository": "https://github.com/uccollab/hai-coaching",
+  "commit": "96fdef068523ac0f1143da3737afc32ab93f0426",
+  "fetched_at": "2026-11-07T08:33:16.281437+00:00",
+  "archive": "source-96fdef068523.zip",
+  "archive_sha256": "6bbab042d21cff89241b3cd260ca20194e44f3a5831af4b6f854c17132e249f0",
+  "upstream_root": "medical-answer-scoring/evaluation/raw/hai-coaching/upstream/96fdef068523ac0f1143da3737afc32ab93f0426",
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 26526,
+      "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6296,
+      "sha256": "a4e2ec203f9030840d0fe7bad162a694db8159802c145c449674a470ba679ea1"
+    },
+    {
+      "path": "dataset_parsing.ipynb",
+      "bytes": 8574,
+      "sha256": "1ebaf72c798f75403ae0a9a5aab050e8a7537b94a3da6873a8b6740fff45bc2e"
+    },
+    {
+      "path": "evaluation/classification/cluster_classification_finetuning.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/classification/cluster_classification_inference.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/classification/safety_classification_finetuning.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/classification/safety_classification_inference.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/generation/decoding.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/generation/finetuning.ipynb",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/generation/hai_coaching_dataset.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evaluation/generation/trainer.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "experts-likert/README.md",
+      "bytes": 341,
+      "sha256": "ffdc861685dfb9d443896996af5636e09bb6699d776cf5dc19f0b3b47e1df997"
+    },
+    {
+      "path": "experts-likert/likert-results.xlsx",
+      "bytes": 13909,
+      "sha256": "3520828688dba4a353470d5eea5bcd043ceca3d5ffc2b8fd30d94f4654417995"
+    },
+    {
+      "path": "prompts/README.md",
+      "bytes": 128,
+      "sha256": "abc9e2f365a60c3db67f6997f5116a313197c75a90b985f0cb2f9db8dc6e7fe8"
+    },
+    {
+      "path": "prompts/v1/chatGPT_prompts.txt",
+      "bytes": 1846,
+      "sha256": "b4ef8941c388bdee94be5f06023707fb69f559802cf8aae8ffaee7de35792247"
+    },
+    {
+      "path": "prompts/v2/ChatGPT pompts v2.txt",
+      "bytes": 816,
+      "sha256": "35b79f81bef8ec413ef8bd82b3998b1f1d04406e86881a4be30cfb4ffffe9718"
+    },
+    {
+      "path": "prompts/v3_composite/intent_post.txt",
+      "bytes": 273,
+      "sha256": "040035e0c4ea255259f0d1cd8f2056ee0694c042ce50b9c5fd119acfeb8a318e"
+    },
+    {
+      "path": "prompts/v3_composite/intent_pre.txt",
+      "bytes": 347,
+      "sha256": "1e3e36d58891b7bf5595558273d11524b89de576a881d57cf287153e57152d58"
+    },
+    {
+      "path": "prompts/v3_composite/paraphrase.txt",
+      "bytes": 163,
+      "sha256": "10ee8b889f19dc654ce8182c20e3f5cec9aa99ebef0d3af20e9ac76df479eb3e"
+    },
+    {
+      "path": "prompts/v3_composite/reflection_post.txt",
+      "bytes": 243,
+      "sha256": "62cb747ad98d17dedad3d59d7c08fec2fe610000b387374e1375121095ba65bf"
+    },
+    {
+      "path": "prompts/v3_composite/reflection_pre.txt",
+      "bytes": 317,
+      "sha256": "ad3c6dfbdc91b86239bbf42cf74bdc32f9ece01f1cb5af8c004542c437692b0e"
+    },
+    {
+      "path": "prompts/v3_composite/reframing_post.txt",
+      "bytes": 242,
+      "sha256": "ef7392d580e7281f5c677583ed5ff92fb649346d632776ade3b9ba8ba74abe8f"
+    },
+    {
+      "path": "prompts/v3_composite/reframing_pre.txt",
+      "bytes": 319,
+      "sha256": "33d191b98d9c1c52cebb2cf6ba356a4a153973ed101d180890e288ae80ae4024"
+    },
+    {
+      "path": "prompts/v3_composite/slots/intent_slots.txt",
+      "bytes": 99,
+      "sha256": "9b4235c8b44ed4ac2abcddc70764ffec9e0898c45d282a2ee25aa189d8d75c71"
+    },
+    {
+      "path": "prompts/v3_composite/slots/reflection_slots.txt",
+      "bytes": 92,
+      "sha256": "1f33cce7b89047952e01aa20d798b5c17cb443bd69bf048ab1e56843056fb1f8"
+    },
+    {
+      "path": "prompts/v3_composite/slots/reframing_slots.txt",
+      "bytes": 117,
+      "sha256": "00e3b95bdbf3624ebdd92e41a4f8eb62b1f45f633752ddeb50ffa0593211a435"
+    },
+    {
+      "path": "prompts/v3_composite/tentative_aio.txt",
+      "bytes": 780,
+      "sha256": "e49b70d31096c0059f5aed7f0b32ff9fe5714af942dfa496f936c9e6440255fd"
+    },
+    {
+      "path": "prompts/v4/intent_post_1.txt",
+      "bytes": 161,
+      "sha256": "c20542be0732485571d75fca91bf02b6ad8d5ecf90faa5834e06bde043482555"
+    },
+    {
+      "path": "prompts/v4/intent_post_2.txt",
+      "bytes": 192,
+      "sha256": "654616e78c41f42af201f0fb36957f0fb248559536972c30bd59901c488e732c"
+    },
+    {
+      "path": "prompts/v4/intent_pre.txt",
+      "bytes": 456,
+      "sha256": "d30c020ee3e0222edbbcbe4514a69759713e05be488c2494eb6739edd40ad7e3"
+    },
+    {
+      "path": "prompts/v4/paraphrase.txt",
+      "bytes": 163,
+      "sha256": "10ee8b889f19dc654ce8182c20e3f5cec9aa99ebef0d3af20e9ac76df479eb3e"
+    },
+    {
+      "path": "prompts/v4/reflection_post_1.txt",
+      "bytes": 185,
+      "sha256": "368d4c1814b0067f5410c6ddfc7913c449a858dc9db40a5ca8858e2c2d2c8904"
+    },
+    {
+      "path": "prompts/v4/reflection_post_2.txt",
+      "bytes": 206,
+      "sha256": "177d735d854e4fdf64e7a433517f51fde258709762863c14a66ba1c0c38ac3a0"
+    },
+    {
+      "path": "prompts/v4/reflection_pre.txt",
+      "bytes": 521,
+      "sha256": "dd5a20b8c4ea91764912be35c229339cc44091b856d4f2d60ffd475c61a4b081"
+    },
+    {
+      "path": "prompts/v4/reframing_post_1.txt",
+      "bytes": 212,
+      "sha256": "842c1efa95ca6f028add89bdabe25032582956be9ef231c466a551117e5dda35"
+    },
+    {
+      "path": "prompts/v4/reframing_post_2.txt",
+      "bytes": 234,
+      "sha256": "3fb3730cf99183c1a90f77a0b4dedfaa432e5241948eaaef3cd78dbde361bcff"
+    },
+    {
+      "path": "prompts/v4/reframing_pre.txt",
+      "bytes": 614,
+      "sha256": "e0fee06cb34713efbc3123f8488a94863667d472f64a2256ce799bcae1942216"
+    },
+    {
+      "path": "prompts/v5/intent_post_1.txt",
+      "bytes": 114,
+      "sha256": "19c90397d1a505ca8276b35d2c9fc361b38c0771f99b1d7bd82df6d15ff683b4"
+    },
+    {
+      "path": "prompts/v5/intent_post_2.txt",
+      "bytes": 251,
+      "sha256": "e765349d053b6e384f713f624ea101ce053869d75871a15468454d3e97223674"
+    },
+    {
+      "path": "prompts/v5/intent_pre.txt",
+      "bytes": 366,
+      "sha256": "6eb944e8cd29302b32be22bc677cbd33c0c84b1aea8f3e8ab6d1bd337b66d577"
+    },
+    {
+      "path": "prompts/v5/paraphrase.txt",
+      "bytes": 163,
+      "sha256": "10ee8b889f19dc654ce8182c20e3f5cec9aa99ebef0d3af20e9ac76df479eb3e"
+    },
+    {
+      "path": "prompts/v5/reflection_post_1.txt",
+      "bytes": 233,
+      "sha256": "4d642b818fd7e3606e4b1276e8943ff157953f925d8d683f8ef1d8b1279e233c"
+    },
+    {
+      "path": "prompts/v5/reflection_post_2.txt",
+      "bytes": 257,
+      "sha256": "475bdd07e4bf3e3efdcc4e5ccb8d4652acf13947de75b66cadbcb092a4209536"
+    },
+    {
+      "path": "prompts/v5/reflection_pre.txt",
+      "bytes": 351,
+      "sha256": "ad6acf6fa7c0c500ed539a14bb3dc668407207a91a1b77d2d2148ac3d3565929"
+    },
+    {
+      "path": "prompts/v5/reframing_post_1.txt",
+      "bytes": 277,
+      "sha256": "b0841b285c6ee9ab853704695709a170bd2e4c170c11e4bb6b0783dea532403d"
+    },
+    {
+      "path": "prompts/v5/reframing_post_2.txt",
+      "bytes": 283,
+      "sha256": "bc859f7395b422ddacdae8f3a96e0f67162108bdf4c3417b974d9fffa0d3bf9e"
+    },
+    {
+      "path": "prompts/v5/reframing_pre.txt",
+      "bytes": 330,
+      "sha256": "28fa808b6002c2f6b954ff929e3a61e695f0e084885946275d6e2fa068e76814"
+    },
+    {
+      "path": "prompts/v6/comfort_1.txt",
+      "bytes": 326,
+      "sha256": "9f096a50aedd2f2cddb9a2d637a78a4b111bbe91ac49a279968a06522a612eb3"
+    },
+    {
+      "path": "prompts/v6/dropped/reframing_2.txt",
+      "bytes": 323,
+      "sha256": "fc2d73cb652c0b8bdbaee6ed1379bc37ecf7499f7f8cbc89eca5f61941ad4bc6"
+    },
+    {
+      "path": "prompts/v6/intent_1.txt",
+      "bytes": 277,
+      "sha256": "f3b3666e6269217aa604b519054c1ddf4ccbf60d3159f9129cfd51598aaafc46"
+    },
+    {
+      "path": "prompts/v6/reflection_1.txt",
+      "bytes": 266,
+      "sha256": "d56c3de2d3b18196d0cfb9a806c777795c3e13b077a58ecc6c18ad325d860135"
+    },
+    {
+      "path": "prompts/v6/reframing_1.txt",
+      "bytes": 280,
+      "sha256": "0871ad803961139e480738eafa17c39e1a18929954928f97091d114d08d00bf6"
+    },
+    {
+      "path": "prompts/v6/sentence_correction.txt",
+      "bytes": 103,
+      "sha256": "939804d21410d3ff41ba0b551958e055aed4aa99920196da6eaa944427690b85"
+    },
+    {
+      "path": "prompts/v6/slots/comfort_slots_1.txt",
+      "bytes": 93,
+      "sha256": "208d9e2407ab884a144c0d2ae565529db2e05f878bb2f59b7b7ee74863423c76"
+    },
+    {
+      "path": "prompts/v6/slots/intent_slots_1.txt",
+      "bytes": 93,
+      "sha256": "208d9e2407ab884a144c0d2ae565529db2e05f878bb2f59b7b7ee74863423c76"
+    },
+    {
+      "path": "prompts/v6/slots/intent_slots_2.txt",
+      "bytes": 92,
+      "sha256": "6208e1715c7fe07c46190953a2dbc17ed8ed892a7f87d3d66ea491d61f3ef779"
+    },
+    {
+      "path": "prompts/v6/slots/reflection_slots_1.txt",
+      "bytes": 79,
+      "sha256": "c6581f0e84f4aab976a0f1213130a0fba60cfd66d9e75364a370517d371258e1"
+    },
+    {
+      "path": "prompts/v6/slots/reflection_slots_2.txt",
+      "bytes": 90,
+      "sha256": "a007e11f4ea8280e7d3ee30e8bed3fe6debf9244067e56276037d5ae3750a62a"
+    },
+    {
+      "path": "prompts/v6/slots/reframing_slots_1.txt",
+      "bytes": 192,
+      "sha256": "a46a93949e97bebbfbe4aa93a2c639ca3e70425f7f83f3913f43eb945b0dc3c2"
+    },
+    {
+      "path": "prompts/v6/slots/reframing_slots_2.txt",
+      "bytes": 198,
+      "sha256": "7681e44a9d4bf55fea36fb0ba3ec7940bd2622236903338f6c00bf432b443af8"
+    },
+    {
+      "path": "prompts/v6/slots/suggestion_slots_1.txt",
+      "bytes": 92,
+      "sha256": "6208e1715c7fe07c46190953a2dbc17ed8ed892a7f87d3d66ea491d61f3ef779"
+    },
+    {
+      "path": "prompts/v6/suggestion_1.txt",
+      "bytes": 277,
+      "sha256": "f3b3666e6269217aa604b519054c1ddf4ccbf60d3159f9129cfd51598aaafc46"
+    },
+    {
+      "path": "safety-annotation/README.md",
+      "bytes": 597,
+      "sha256": "cb6b05477357a9fb382c9d8f6265e007baeef4f0a44037df7d831cf599243318"
+    },
+    {
+      "path": "safety-annotation/annotation_guidelines.pdf",
+      "bytes": 386763,
+      "sha256": "1a18149ad2610df1f2eb3518ca8593dbc722e36ef34cca1367bcc1b72e7d7944"
+    },
+    {
+      "path": "safety-annotation/dummy_annotation_form_fillable.docx",
+      "bytes": 32697,
+      "sha256": "0fc5b16627f0f8eff3eaa1af49441d48fa1633588d385a86ccc89d16166cad37"
+    },
+    {
+      "path": "safety-annotation/dummy_annotation_form_not_fillable.pdf",
+      "bytes": 153575,
+      "sha256": "3e7d412896a2ade1f2535b4662c7d240669a8709679aeda322ca955a49b8290f"
+    },
+    {
+      "path": "struggles-collection/README.md",
+      "bytes": 496,
+      "sha256": "fcdcebc2ed27884e7f94af82d86e59cf9662250965a3b1f54fea7136f462bbc3"
+    },
+    {
+      "path": "struggles-collection/example.png",
+      "bytes": 989813,
+      "sha256": "656e0cdd27297db505cb5cccfba04a09528f0755f7cba6abaa2acbfd0a691d97"
+    },
+    {
+      "path": "struggles-collection/form.html",
+      "bytes": 37317,
+      "sha256": "d157a6366a1bf2a4a38058604ec5ee578b23381d12354ad6bf27eca6c25823e0"
+    },
+    {
+      "path": "struggles-collection/introduction_tutorial.png",
+      "bytes": 1688811,
+      "sha256": "bf4418539f395163c315bf647954cdf605f3213529ac1e5da8bd4ba8a8b68a82"
+    },
+    {
+      "path": "struggles-collection/sanity_checks_info.pdf",
+      "bytes": 242286,
+      "sha256": "6da08d27fa43ee04519d8eb1c647578627e36644e1ec5059cbfd547128ced399"
+    },
+    {
+      "path": "topic-modelling-with-experts/MICRO TOPICS - STEP 1",
+      "bytes": 26692,
+      "sha256": "b11acf626fe2bbcfecd8400254e5e46998c5de77eb4c5c9d95536c537f4e5178"
+    },
+    {
+      "path": "topic-modelling-with-experts/MICRO TOPICS - STEP 2",
+      "bytes": 24510,
+      "sha256": "176df38bde31a9c917a57be3b97430792cd2301f41ea0ee491b96c7978c6c273"
+    },
+    {
+      "path": "topic-modelling-with-experts/README.md",
+      "bytes": 855,
+      "sha256": "ffa15001337698cf84a58051214cbde19a13997b11bdde5a642dfff787a9f144"
+    },
+    {
+      "path": "topic-modelling-with-experts/initial_cluster_analysis",
+      "bytes": 20181,
+      "sha256": "a63f2eaaabd0afa0f3142f1739337913ce87aa36e79ceb3d5d90b407bcfa7848"
+    }
+  ],
+  "existing_dataset": {
+    "local_path": "medical-answer-scoring/evaluation/datasets/hai-coaching.xlsx",
+    "bytes": 23574216,
+    "sha256": "d51a24f57c9f96b3ba71d86b176f62b9f4b6e39f319e81a8ba2d32ce6a60e507",
+    "upstream_bytes": 23574216,
+    "upstream_sha256": "d51a24f57c9f96b3ba71d86b176f62b9f4b6e39f319e81a8ba2d32ce6a60e507",
+    "matches_upstream": true
+  },
+  "note": "Original files only; no upstream code executed. Existing dataset was read and not modified."
+}
