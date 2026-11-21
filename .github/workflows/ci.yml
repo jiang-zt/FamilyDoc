@@ -58,3 +58,156 @@ jobs:
           name: surefire-reports
           path: '**/target/surefire-reports/**'
           if-no-files-found: warn
+
+  replay:
+    name: Mock 流量回放
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPLAY_DB_HOST: 127.0.0.1
+      REPLAY_DB_PORT: '3306'
+      REPLAY_MYSQL_ADMIN_USER: root
+      # 仅用于本 job 创建并销毁的 MySQL，不是任何现有环境的凭证。
+      REPLAY_MYSQL_ADMIN_PASSWORD: ReplayCiOnly-Aa7-test
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ReplayCiOnly-Aa7-test
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Java 21 与 Maven 依赖缓存
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: 安装 MySQL 客户端
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: 验证并初始化隔离回放库
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover \
+            -s ai-family-doctor-api-test/tools/replay -p test_init_db.py
+          python3 ai-family-doctor-api-test/tools/replay/init_db.py \
+            --non-interactive \
+            --env-file "$RUNNER_TEMP/family-replay.env" \
+            --account-host '%'
+          set -a
+          source "$RUNNER_TEMP/family-replay.env"
+          set +a
+          echo "::add-mask::$REPLAY_DB_PASSWORD"
+          echo "::add-mask::$REPLAY_JWT_SECRET"
+
+      - name: 打包本次提交的服务
+        run: mvn -B -ntp -pl ai-family-doctor-server -am package -DskipTests
+
+      - name: 启动 Mock 服务并等待就绪
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source "$RUNNER_TEMP/family-replay.env"
+          set +a
+          mkdir -p ci-replay-logs
+          nohup java -jar ai-family-doctor-server/target/ai-family-doctor-server.jar \
+            --spring.profiles.active=replay \
+            --server.address=127.0.0.1 \
+            --server.port=18080 \
+            --dashscope.mock.enabled=true \
+            --chat.traffic-recording.enabled=false \
+            --evaluation.online.enabled=false \
+            > ci-replay-logs/server.log 2>&1 &
+          server_pid=$!
+          echo "$server_pid" > "$RUNNER_TEMP/family-replay.pid"
+          for attempt in {1..60}; do
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo '回放服务提前退出，请查看 server.log'
+              exit 1
+            fi
+            if curl --fail --silent --show-error --max-time 2 \
+              http://127.0.0.1:18080/internal/replay/environment \
+              > ci-replay-logs/environment.json 2>/dev/null; then
+              python3 - <<'PY'
+          import json
+          from pathlib import Path
+          actual = json.loads(Path('ci-replay-logs/environment.json').read_text())
+          expected = dict(profile='replay', database='ai_family_doctor_replay', mock=True, recording=False)
+          if actual != expected:
+              raise SystemExit('回放环境标记不符合预期')
+          PY
+              exit 0
+            fi
+            sleep 2
+          done
+          echo '等待回放服务就绪超时'
+          exit 1
+
+      - name: 执行单条流量回放
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source "$RUNNER_TEMP/family-replay.env"
+          set +a
+          mvn -B -ntp -pl ai-family-doctor-api-test -am \
+            -Dtest=ReplayRunTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dreplay.enabled=true \
+            -Dreplay.baseUrl=http://127.0.0.1:18080 \
+            "-Dreplay.input=$GITHUB_WORKSPACE/ai-family-doctor-api-test/src/test/resources/replay/single.jsonl" \
+            "-Dreplay.output=$GITHUB_WORKSPACE/ai-family-doctor-api-test/target/replay" \
+            -Dreplay.timeoutSeconds=60 \
+            test
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = Path('ai-family-doctor-api-test/target')
+          suite = ET.parse(root / 'surefire-reports/TEST-com.itzixi.apitest.replay.ReplayRunTest.xml').getroot()
+          if any(int(suite.get(key, '0')) != value for key, value in
+                 [('tests', 1), ('failures', 0), ('errors', 0), ('skipped', 0)]):
+              raise SystemExit('回放测试未实际通过，或被跳过')
+          reports = list((root / 'replay').glob('*.json'))
+          if len(reports) != 1 or json.loads(reports[0].read_text()).get('status') != 'PASS':
+              raise SystemExit('缺少唯一 PASS 回放报告')
+          PY
+
+      - name: 停止回放服务并删除临时凭证
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/family-replay.pid" ]]; then
+            server_pid=$(cat "$RUNNER_TEMP/family-replay.pid")
+            kill "$server_pid" 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP/family-replay.env" "$RUNNER_TEMP/family-replay.pid"
+
+      - name: 归档回放报告与服务日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: replay-reports
+          path: |
+            ai-family-doctor-api-test/target/replay/*.json
+            ai-family-doctor-api-test/target/surefire-reports/**
+            ci-replay-logs/**
+          if-no-files-found: warn
+          retention-days: 7
