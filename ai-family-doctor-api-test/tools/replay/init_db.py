@@ -57,7 +57,23 @@ def mysql(host, port, username, password, sql, database=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--use-dev-credentials', action='store_true', help='使用本机开发配置中的凭证，不打印或保存管理员密码')
+    parser.add_argument('--non-interactive', action='store_true', help='禁止交互及读取开发凭证，缺少配置立即失败')
+    parser.add_argument('--env-file', type=Path, help='回放凭证输出文件；非交互模式必须显式指定')
+    parser.add_argument('--account-host', choices=('localhost', '127.0.0.1', '%'),
+                        help='账号来源主机；临时容器网络可显式选 %%；默认仅本机')
     args = parser.parse_args()
+    if args.non_interactive and args.use_dev_credentials:
+        parser.error('--non-interactive 不能与 --use-dev-credentials 同用')
+    if args.non_interactive and args.env_file is None:
+        parser.error('--non-interactive 必须显式指定 --env-file')
+    env_file = args.env_file.resolve() if args.env_file else ENV
+    if not env_file.parent.is_dir():
+        raise RuntimeError('凭证文件父目录不存在')
+    # 建表文件先读完，避免路径错误发生在数据库操作之后。
+    schema_paths = [Path(__file__).with_name('schema.sql'),
+                   ROOT / 'ai-family-doctor-server/src/main/resources/db/shared-chat-schema.sql',
+                   ROOT / 'ai-family-doctor-server/src/main/resources/db/migration/nutrition-profile-schema.sql']
+    schemas = '\n'.join(path.read_text() for path in schema_paths)
     host = os.getenv('REPLAY_DB_HOST', '127.0.0.1')
     port = int(os.getenv('REPLAY_DB_PORT', '3306'))
     admin = os.getenv('REPLAY_MYSQL_ADMIN_USER', 'root')
@@ -67,6 +83,8 @@ def main():
         admin, password = dev_value('username'), dev_value('password')
     else:
         password = os.getenv('REPLAY_MYSQL_ADMIN_PASSWORD')
+        if args.non_interactive and not password:
+            raise RuntimeError('非交互模式需要 REPLAY_MYSQL_ADMIN_PASSWORD')
         if password is None:
             password = getpass.getpass('本机 MySQL 管理员密码：')
     if host not in ('localhost', '127.0.0.1'):
@@ -74,9 +92,9 @@ def main():
     probe = mysql(host, port, admin, password,
         "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='ai_family_doctor_replay';"
         "SELECT COUNT(*) FROM mysql.user WHERE User='family_replay';")
-    if ENV.exists():
+    if env_file.exists():
         values = {}
-        for line in ENV.read_text().splitlines():
+        for line in env_file.read_text().splitlines():
             if '=' in line and not line.startswith('#'):
                 key, value = line.split('=', 1)
                 parts = shlex.split(value)
@@ -93,7 +111,7 @@ def main():
         values = dict(REPLAY_DB_HOST=host, REPLAY_DB_PORT=str(port), REPLAY_DB_PASSWORD=replay_password,
                       REPLAY_JWT_SECRET=secrets.token_hex(32), REPLAY_PORT='18080')
         # 在创建前保存随机凭证，失败重试也不遗失已创建账号的密码。
-        fd = os.open(ENV, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        fd = os.open(env_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(fd, 'w') as file:
             file.write('# 本机回放凭证；不要提交到仓库\n')
             file.write('\n'.join(f'{key}={shlex.quote(value)}' for key, value in values.items()) + '\n')
@@ -101,26 +119,27 @@ def main():
         # 只在专用账号尚未创建时更新随机凭证；绝不重置已存在账号。
         replay_password = new_password()
         values['REPLAY_DB_PASSWORD'] = replay_password
-        with tempfile.NamedTemporaryFile(mode='w', dir=ROOT, prefix='.env.replay.', delete=False) as file:
+        with tempfile.NamedTemporaryFile(mode='w', dir=env_file.parent, prefix='.env.replay.', delete=False) as file:
             temporary = file.name
             os.chmod(temporary, 0o600)
             file.write('# 本机回放凭证；不要提交到仓库\n')
             file.write('\n'.join(f'{key}={shlex.quote(value)}' for key, value in values.items()) + '\n')
-        os.replace(temporary, ENV)
+        os.replace(temporary, env_file)
     sql = f'CREATE DATABASE IF NOT EXISTS `{DATABASE}` CHARACTER SET utf8mb4;\nUSE `{DATABASE}`;\n'
-    sql += (Path(__file__).with_name('schema.sql')).read_text() + '\n'
-    for account_host in ('localhost', '127.0.0.1'):
+    sql += schemas + '\n'
+    account_hosts = (args.account_host,) if args.account_host else ('localhost', '127.0.0.1')
+    for account_host in account_hosts:
         sql += f"CREATE USER IF NOT EXISTS '{USER}'@'{account_host}' IDENTIFIED BY '{replay_password}';\n"
         sql += f"GRANT SELECT,INSERT,UPDATE,DELETE ON `{DATABASE}`.* TO '{USER}'@'{account_host}';\n"
     mysql(host, port, admin, password, sql)
     if mysql(host, port, USER, replay_password, 'SELECT DATABASE();', DATABASE) != DATABASE:
         raise RuntimeError('回放账号验证失败')
-    print('回放库和受限账号初始化成功；凭证保存在 .env.replay（0600），未修改 root 或开发库。')
+    print('回放库和受限账号初始化成功；凭证已写入指定文件（0600），未修改 root 或开发库。')
 
 if __name__ == '__main__':
     try:
         main()
-    except (RuntimeError, KeyError, ValueError, subprocess.TimeoutExpired) as error:
+    except (RuntimeError, KeyError, ValueError, OSError, subprocess.TimeoutExpired) as error:
         if isinstance(error, RuntimeError):
             print(str(error))
         else:

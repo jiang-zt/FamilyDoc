@@ -50,3 +50,46 @@ bash tools/replay/run_one.sh /绝对路径/recording.jsonl sampleId
 7. `ReplayMetricVerifier`：只读查询和指标核对。
 
 前置条件：Java 21+、Maven、Python 3、mysql 客户端及运行中的本机 MySQL。不新增运行依赖，不需要启动前端。
+
+
+## 非交互初始化（为 CI 准备）
+
+在项目根目录执行。先由 CI 启动临时 MySQL，映射到本机端口；本脚本创建库、账号和表，
+不负责创建或销毁容器。必须预先通过环境变量提供临时实例的管理员密码：
+
+- `REPLAY_MYSQL_ADMIN_PASSWORD`：必填，不能打印到日志。
+- `REPLAY_MYSQL_ADMIN_USER`：默认 `root`。
+- `REPLAY_DB_HOST`：默认 `127.0.0.1`，仍只允许本机地址。
+- `REPLAY_DB_PORT`：默认 `3306`，可指向临时容器的映射端口。
+
+```bash
+# CI 中先创建此临时目录；不要上传生成的凭证文件。
+python3 ai-family-doctor-api-test/tools/replay/init_db.py \
+  --non-interactive \
+  --env-file "$RUNNER_TEMP/family-replay.env" \
+  --account-host '%'
+
+# 在需要使用配置的每个后续 shell 步骤中加载；不包含管理员凭证。
+set -a
+source "$RUNNER_TEMP/family-replay.env"
+set +a
+```
+
+`--account-host '%'` 仅用于临时容器的来源地址匹配，权限仍仅限
+`ai_family_doctor_replay` 库的 SELECT/INSERT/UPDATE/DELETE；不传时保留本机账号行为。
+非交互模式不提示输入、不读取开发配置，必须显式指定凭证输出文件。
+输出文件权限为 0600，包含生成的回放账号密码和独立 JWT 密钥。
+同一环境重复执行需复用该文件；发现同名库或账号但无凭证文件时拒绝接管，
+不重置现有密码。固定库名依靠每次 CI 的临时 MySQL 实例实现隔离。
+
+复用已有三份建表 SQL：本目录 `schema.sql`、服务模块的
+`db/shared-chat-schema.sql` 和 `db/migration/nutrition-profile-schema.sql`。
+初始化成功返回 0，配置、SQL 或连接失败返回非零；不保证 MySQL DDL 原子回滚，
+中途失败后保留凭证文件以便重试。
+
+脚本单元测试（不连接数据库）：
+
+```bash
+python3 -m unittest discover \
+  -s ai-family-doctor-api-test/tools/replay -p test_init_db.py
+```
